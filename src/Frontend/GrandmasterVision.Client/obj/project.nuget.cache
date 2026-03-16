@@ -1,0 +1,57 @@
+{
+  "version": 2,
+  "dgSpecHash": "MtHcahwldOk=",
+  "success": true,
+  "projectFilePath": "D:\\Chess\\GrandmasterVision\\src\\Frontend\\GrandmasterVision.Client\\GrandmasterVision.Client.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\unity\\.nuget\\packages\\microsoft.aspnetcore.authorization\\9.0.3\\microsoft.aspnetcore.authorization.9.0.3.nupkg.sha512",
+    "C:\\Users\\unity\\.nuget\\packages\\microsoft.aspnetcore.components\\9.0.3\\microsoft.aspnetcore.components.9.0.3.nupkg.sha512",
+    "C:\\Users\\unity\\.nuget\\packages\\microsoft.aspnetcore.components.analyzers\\9.0.3\\microsoft.aspnetcore.components.analyzers.9.0.3.nupkg.sha512",
+    "C:\\Users\\unity\\.nuget\\packages\\microsoft.aspnetcore.components.forms\\9.0.3\\microsoft.aspnetcore.components.forms.9.0.3.nupkg.sha512",
+    "C:\\Users\\unity\\.nuget\\packages\\microsoft.aspnetcore.components.web\\9.0.3\\microsoft.aspnetcore.components.web.9.0.3.nupkg.sha512",
+    "C:\\Users\\unity\\.nuget\\packages\\microsoft.aspnetcore.components.webassembly\\9.0.3\\microsoft.aspnetcore.components.webassembly.9.0.3.nupkg.sha512",
+    "C:\\Users\\unity\\.nuget\\packages\\microsoft.aspnetcore.components.webassembly.devserver\\9.0.3\\microsoft.aspnetcore.components.webassembly.devserver.9.0.3.nupkg.sha512",
+    "C:\\Users\\unity\\.nuget\\packages\\microsoft.aspnetcore.metadata\\9.0.3\\microsoft.aspnetcore.metadata.9.0.3.nupkg.sha512",
+    "C:\\Users\\unity\\.nuget\\packages\\microsoft.extensions.configuration\\9.0.3\\microsoft.extensions.configuration.9.0.3.nupkg.sha512",
+    "C:\\Users\\unity\\.nuget\\packages\\microsoft.extensions.configuration.abstractions\\9.0.3\\microsoft.extensions.configuration.abstractions.9.0.3.nupkg.sha512",
+    "C:\\Users\\unity\\.nuget\\packages\\microsoft.extensions.configuration.binder\\9.0.3\\microsoft.extensions.configuration.binder.9.0.3.nupkg.sha512",
+    "C:\\Users\\unity\\.nuget\\packages\\microsoft.extensions.configuration.fileextensions\\9.0.3\\microsoft.extensions.configuration.fileextensions.9.0.3.nupkg.sha512",
+    "C:\\Users\\unity\\.nuget\\packages\\microsoft.extensions.configuration.json\\9.0.3\\microsoft.extensions.configuration.json.9.0.3.nupkg.sha512",
+    "C:\\Users\\unity\\.nuget\\packages\\microsoft.extensions.dependencyinjection\\9.0.3\\microsoft.extensions.dependencyinjection.9.0.3.nupkg.sha512",
+    "C:\\Users\\unity\\.nuget\\packages\\microsoft.extensions.dependencyinjection.abstractions\\9.0.3\\microsoft.extensions.dependencyinjection.abstractions.9.0.3.nupkg.sha512",
+    "C:\\Users\\unity\\.nuget\\packages\\microsoft.extensions.fileproviders.abstractions\\9.0.3\\microsoft.extensions.fileproviders.abstractions.9.0.3.nupkg.sha512",
+    "C:\\Users\\unity\\.nuget\\packages\\microsoft.extensions.fileproviders.physical\\9.0.3\\microsoft.extensions.fileproviders.physical.9.0.3.nupkg.sha512",
+    "C:\\Users\\unity\\.nuget\\packages\\microsoft.extensions.filesystemglobbing\\9.0.3\\microsoft.extensions.filesystemglobbing.9.0.3.nupkg.sha512",
+    "C:\\Users\\unity\\.nuget\\packages\\microsoft.extensions.logging\\9.0.3\\microsoft.extensions.logging.9.0.3.nupkg.sha512",
+    "C:\\Users\\unity\\.nuget\\packages\\microsoft.extensions.logging.abstractions\\9.0.3\\microsoft.extensions.logging.abstractions.9.0.3.nupkg.sha512",
+    "C:\\Users\\unity\\.nuget\\packages\\microsoft.extensions.objectpool\\6.0.10\\microsoft.extensions.objectpool.6.0.10.nupkg.sha512",
+    "C:\\Users\\unity\\.nuget\\packages\\microsoft.extensions.options\\9.0.3\\microsoft.extensions.options.9.0.3.nupkg.sha512",
+    "C:\\Users\\unity\\.nuget\\packages\\microsoft.extensions.primitives\\9.0.3\\microsoft.extensions.primitives.9.0.3.nupkg.sha512",
+    "C:\\Users\\unity\\.nuget\\packages\\microsoft.jsinterop\\9.0.3\\microsoft.jsinterop.9.0.3.nupkg.sha512",
+    "C:\\Users\\unity\\.nuget\\packages\\microsoft.jsinterop.webassembly\\9.0.3\\microsoft.jsinterop.webassembly.9.0.3.nupkg.sha512",
+    "C:\\Users\\unity\\.nuget\\packages\\microsoft.net.illink.tasks\\9.0.13\\microsoft.net.illink.tasks.9.0.13.nupkg.sha512",
+    "C:\\Users\\unity\\.nuget\\packages\\microsoft.net.sdk.webassembly.pack\\10.0.3\\microsoft.net.sdk.webassembly.pack.10.0.3.nupkg.sha512",
+    "C:\\Users\\unity\\.nuget\\packages\\pgn.net\\1.2.1\\pgn.net.1.2.1.nupkg.sha512",
+    "C:\\Users\\unity\\.nuget\\packages\\rudzoft.chesslib\\0.0.3\\rudzoft.chesslib.0.0.3.nupkg.sha512",
+    "C:\\Users\\unity\\.nuget\\packages\\system.memory\\4.5.3\\system.memory.4.5.3.nupkg.sha512",
+    "C:\\Users\\unity\\.nuget\\packages\\zstring\\2.4.4\\zstring.2.4.4.nupkg.sha512",
+    "C:\\Users\\unity\\.nuget\\packages\\microsoft.netcore.app.ref\\9.0.13\\microsoft.netcore.app.ref.9.0.13.nupkg.sha512",
+    "C:\\Users\\unity\\.nuget\\packages\\microsoft.netcore.app.runtime.mono.browser-wasm\\9.0.13\\microsoft.netcore.app.runtime.mono.browser-wasm.9.0.13.nupkg.sha512",
+    "C:\\Users\\unity\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\9.0.13\\microsoft.windowsdesktop.app.ref.9.0.13.nupkg.sha512",
+    "C:\\Users\\unity\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\9.0.13\\microsoft.aspnetcore.app.ref.9.0.13.nupkg.sha512"
+  ],
+  "logs": [
+    {
+      "code": "NU1701",
+      "level": "Warning",
+      "message": "Package 'pgn.net 1.2.1' was restored using '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' instead of the project target framework 'net9.0'. This package may not be fully compatible with your project.",
+      "projectPath": "D:\\Chess\\GrandmasterVision\\src\\Frontend\\GrandmasterVision.Client\\GrandmasterVision.Client.csproj",
+      "warningLevel": 1,
+      "filePath": "D:\\Chess\\GrandmasterVision\\src\\Frontend\\GrandmasterVision.Client\\GrandmasterVision.Client.csproj",
+      "libraryId": "pgn.net",
+      "targetGraphs": [
+        "net9.0"
+      ]
+    }
+  ]
+}

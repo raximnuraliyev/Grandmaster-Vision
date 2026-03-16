@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/GrandmasterVision.Core/GrandmasterVision.Core.csproj" />
+  </Folder>
+  <Folder Name="/src/Backend/">
+    <Project Path="src/Backend/GrandmasterVision.Api/GrandmasterVision.Api.csproj" />
+  </Folder>
+  <Folder Name="/src/Frontend/">
+    <Project Path="src/Frontend/GrandmasterVision.Client/GrandmasterVision.Client.csproj" />
+  </Folder>
+</Solution>

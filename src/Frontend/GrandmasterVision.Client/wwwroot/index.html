@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Grandmaster Vision - AI Chess Analysis</title>
+    <base href="/" />
+    <link rel="stylesheet" href="css/app.css" />
+    <link rel="icon" type="image/png" href="favicon.png" />
+</head>
+
+<body>
+    <div id="app">
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#000;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif;">
+            <div style="font-size:48px;margin-bottom:20px;">♔</div>
+            <h2 style="font-size:24px;font-weight:600;margin-bottom:8px;">Grandmaster Vision</h2>
+            <p style="color:#8e8e93;font-size:14px;margin-bottom:24px;">AI-Powered Chess Analysis</p>
+            <div style="width:32px;height:32px;border:3px solid #2c2c2e;border-top-color:#0a84ff;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+        </div>
+        <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+    </div>
+
+    <div id="blazor-error-ui">
+        An error occurred. <a href="." style="color:#fff;">Reload</a>
+    </div>
+
+    <script src="_framework/blazor.webassembly.js" autostart="true"></script>
+</body>
+
+</html>

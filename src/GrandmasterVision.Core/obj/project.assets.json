@@ -1,0 +1,273 @@
+{
+  "version": 3,
+  "targets": {
+    "net9.0": {
+      "Microsoft.Extensions.ObjectPool/6.0.10": {
+        "type": "package",
+        "compile": {
+          "lib/net6.0/Microsoft.Extensions.ObjectPool.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net6.0/Microsoft.Extensions.ObjectPool.dll": {
+            "related": ".xml"
+          }
+        }
+      },
+      "pgn.net/1.2.1": {
+        "type": "package",
+        "compile": {
+          "lib/net45/pgn.net.dll": {
+            "related": ".pdb;.xml"
+          }
+        },
+        "runtime": {
+          "lib/net45/pgn.net.dll": {
+            "related": ".pdb;.xml"
+          }
+        }
+      },
+      "Rudzoft.ChessLib/0.0.3": {
+        "type": "package",
+        "dependencies": {
+          "Microsoft.Extensions.ObjectPool": "6.0.10",
+          "ZString": "2.4.4"
+        },
+        "compile": {
+          "lib/net6.0/Rudzoft.ChessLib.dll": {}
+        },
+        "runtime": {
+          "lib/net6.0/Rudzoft.ChessLib.dll": {}
+        }
+      },
+      "System.Memory/4.5.3": {
+        "type": "package",
+        "compile": {
+          "ref/netcoreapp2.1/_._": {}
+        },
+        "runtime": {
+          "lib/netcoreapp2.1/_._": {}
+        }
+      },
+      "ZString/2.4.4": {
+        "type": "package",
+        "dependencies": {
+          "System.Memory": "4.5.3"
+        },
+        "compile": {
+          "lib/netstandard2.1/ZString.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/netstandard2.1/ZString.dll": {
+            "related": ".xml"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "Microsoft.Extensions.ObjectPool/6.0.10": {
+      "sha512": "vJKO8exI4mwk2qH8I9m3bbUZMWW97pvyN7kfVn1rcVj4Eaizd0OMikU8SeHJlZyhuPJH0F7nP0Uhq7sSRFzETQ==",
+      "type": "package",
+      "path": "microsoft.extensions.objectpool/6.0.10",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "Icon.png",
+        "THIRD-PARTY-NOTICES.TXT",
+        "lib/net461/Microsoft.Extensions.ObjectPool.dll",
+        "lib/net461/Microsoft.Extensions.ObjectPool.xml",
+        "lib/net6.0/Microsoft.Extensions.ObjectPool.dll",
+        "lib/net6.0/Microsoft.Extensions.ObjectPool.xml",
+        "lib/netstandard2.0/Microsoft.Extensions.ObjectPool.dll",
+        "lib/netstandard2.0/Microsoft.Extensions.ObjectPool.xml",
+        "microsoft.extensions.objectpool.6.0.10.nupkg.sha512",
+        "microsoft.extensions.objectpool.nuspec"
+      ]
+    },
+    "pgn.net/1.2.1": {
+      "sha512": "RnEspVYQiA/ieV0Ri2EcbULV5Z82vfqg3Pi0Zv+gmAvN0BPlzpBgNucKmSOzxZox0VYIkKAqB0nieEHSgXw27A==",
+      "type": "package",
+      "path": "pgn.net/1.2.1",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "lib/net40/pgn.net.dll",
+        "lib/net40/pgn.net.pdb",
+        "lib/net40/pgn.net.xml",
+        "lib/net45/pgn.net.dll",
+        "lib/net45/pgn.net.pdb",
+        "lib/net45/pgn.net.xml",
+        "pgn.net.1.2.1.nupkg.sha512",
+        "pgn.net.nuspec"
+      ]
+    },
+    "Rudzoft.ChessLib/0.0.3": {
+      "sha512": "snE69yX7ChDJSNAEJjxL0t7sUDggFkCsy1ZdORbkuA5gAPtgBtw1kC7l/DBPRCurWSfOYEJkKxh+Kd6pV7U9cA==",
+      "type": "package",
+      "path": "rudzoft.chesslib/0.0.3",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "ChessLib.png",
+        "LICENSE",
+        "README.md",
+        "lib/net6.0/Rudzoft.ChessLib.dll",
+        "rudzoft.chesslib.0.0.3.nupkg.sha512",
+        "rudzoft.chesslib.nuspec"
+      ]
+    },
+    "System.Memory/4.5.3": {
+      "sha512": "3oDzvc/zzetpTKWMShs1AADwZjQ/36HnsufHRPcOjyRAAMLDlu2iD33MBI2opxnezcVUtXyqDXXjoFMOU9c7SA==",
+      "type": "package",
+      "path": "system.memory/4.5.3",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "LICENSE.TXT",
+        "THIRD-PARTY-NOTICES.TXT",
+        "lib/netcoreapp2.1/_._",
+        "lib/netstandard1.1/System.Memory.dll",
+        "lib/netstandard1.1/System.Memory.xml",
+        "lib/netstandard2.0/System.Memory.dll",
+        "lib/netstandard2.0/System.Memory.xml",
+        "ref/netcoreapp2.1/_._",
+        "system.memory.4.5.3.nupkg.sha512",
+        "system.memory.nuspec",
+        "useSharedDesignerContext.txt",
+        "version.txt"
+      ]
+    },
+    "ZString/2.4.4": {
+      "sha512": "3ETG/AE0wR+Uo1CPwzSIYLMvDak5i8stKR/DdxOTyj8EKD9bKPTbftv/YhMbbjfR04gA2xK0PX3mPj7BRGDlew==",
+      "type": "package",
+      "path": "zstring/2.4.4",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "Icon.png",
+        "lib/netstandard2.0/ZString.dll",
+        "lib/netstandard2.0/ZString.xml",
+        "lib/netstandard2.1/ZString.dll",
+        "lib/netstandard2.1/ZString.xml",
+        "zstring.2.4.4.nupkg.sha512",
+        "zstring.nuspec"
+      ]
+    }
+  },
+  "projectFileDependencyGroups": {
+    "net9.0": [
+      "Rudzoft.ChessLib >= 0.0.3",
+      "pgn.net >= 1.2.1"
+    ]
+  },
+  "packageFolders": {
+    "C:\\Users\\unity\\.nuget\\packages\\": {},
+    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
+  },
+  "project": {
+    "version": "1.0.0",
+    "restore": {
+      "projectUniqueName": "D:\\Chess\\GrandmasterVision\\src\\GrandmasterVision.Core\\GrandmasterVision.Core.csproj",
+      "projectName": "GrandmasterVision.Core",
+      "projectPath": "D:\\Chess\\GrandmasterVision\\src\\GrandmasterVision.Core\\GrandmasterVision.Core.csproj",
+      "packagesPath": "C:\\Users\\unity\\.nuget\\packages\\",
+      "outputPath": "D:\\Chess\\GrandmasterVision\\src\\GrandmasterVision.Core\\obj\\",
+      "projectStyle": "PackageReference",
+      "fallbackFolders": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+      ],
+      "configFilePaths": [
+        "C:\\Users\\unity\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+      ],
+      "originalTargetFrameworks": [
+        "net9.0"
+      ],
+      "sources": {
+        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+        "C:\\Program Files\\dotnet\\library-packs": {},
+        "https://api.nuget.org/v3/index.json": {}
+      },
+      "frameworks": {
+        "net9.0": {
+          "targetAlias": "net9.0",
+          "projectReferences": {}
+        }
+      },
+      "warningProperties": {
+        "warnAsError": [
+          "NU1605"
+        ]
+      },
+      "restoreAuditProperties": {
+        "enableAudit": "true",
+        "auditLevel": "low",
+        "auditMode": "direct"
+      },
+      "SdkAnalysisLevel": "10.0.100"
+    },
+    "frameworks": {
+      "net9.0": {
+        "targetAlias": "net9.0",
+        "dependencies": {
+          "Rudzoft.ChessLib": {
+            "target": "Package",
+            "version": "[0.0.3, )"
+          },
+          "pgn.net": {
+            "target": "Package",
+            "version": "[1.2.1, )"
+          }
+        },
+        "imports": [
+          "net461",
+          "net462",
+          "net47",
+          "net471",
+          "net472",
+          "net48",
+          "net481"
+        ],
+        "assetTargetFallback": true,
+        "warn": true,
+        "downloadDependencies": [
+          {
+            "name": "Microsoft.AspNetCore.App.Ref",
+            "version": "[9.0.13, 9.0.13]"
+          },
+          {
+            "name": "Microsoft.NETCore.App.Ref",
+            "version": "[9.0.13, 9.0.13]"
+          },
+          {
+            "name": "Microsoft.WindowsDesktop.App.Ref",
+            "version": "[9.0.13, 9.0.13]"
+          }
+        ],
+        "frameworkReferences": {
+          "Microsoft.NETCore.App": {
+            "privateAssets": "all"
+          }
+        },
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.103/PortableRuntimeIdentifierGraph.json"
+      }
+    }
+  },
+  "logs": [
+    {
+      "code": "NU1701",
+      "level": "Warning",
+      "warningLevel": 1,
+      "message": "Package 'pgn.net 1.2.1' was restored using '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' instead of the project target framework 'net9.0'. This package may not be fully compatible with your project.",
+      "libraryId": "pgn.net",
+      "targetGraphs": [
+        "net9.0"
+      ]
+    }
+  ]
+}

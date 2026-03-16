@@ -1,0 +1,376 @@
+@page "/"
+@using GrandmasterVision.Client.Components
+@using GrandmasterVision.Client.Services
+@using GrandmasterVision.Core.Services
+@inject ChessApiService ApiService
+
+<PageTitle>Grandmaster Vision - AI Chess Analysis</PageTitle>
+
+<div class="analysis-grid">
+    <div class="board-section">
+        <ChessBoard Fen="@_currentFen"
+                    Evaluation="@_evaluation"
+                    MateIn="@_mateIn"
+                    OnMove="HandleMove"
+                    FlipBoard="@_flipBoard" />
+
+        <div class="board-controls">
+            <button class="btn btn-secondary" @onclick="FlipBoard">Flip</button>
+            <button class="btn btn-secondary" @onclick="ResetBoard">Reset</button>
+            <button class="btn btn-primary" @onclick="Analyze" disabled="@_isAnalyzing">
+                @if (_isAnalyzing)
+                {
+                    <span>Analyzing...</span>
+                }
+                else
+                {
+                    <span>Analyze Position</span>
+                }
+            </button>
+        </div>
+    </div>
+
+    <div class="analysis-panel">
+        <!-- Evaluation Card -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title"><span class="icon icon-eval"></span> Evaluation</span>
+                @if (_analysisDepth > 0)
+                {
+                    <span class="badge badge-success">Depth @_analysisDepth</span>
+                }
+            </div>
+            <div class="card-body">
+                <div class="eval-bar-container">
+                    <div class="eval-bar">
+                        <div class="eval-bar-fill" style="width: @GetEvalBarWidth()%"></div>
+                    </div>
+                    <div class="eval-value @GetEvalClass()">@FormatEval(_evaluation, _mateIn)</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Moves Card -->
+        @if (_topMoves != null && _topMoves.Count > 0)
+        {
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title"><span class="icon icon-moves"></span> Best Moves</span>
+                </div>
+                <div class="card-body">
+                    <div class="move-list">
+                        @foreach (var move in _topMoves)
+                        {
+                            <div class="move-item @(move.Rank == 1 ? "best" : "")">
+                                <div class="move-rank">@move.Rank</div>
+                                <span class="move-name">@move.Move</span>
+                                <span class="move-eval">@FormatEval(move.Evaluation, move.MateIn)</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Principal Variation -->
+        @if (_bestMove?.PrincipalVariation != null)
+        {
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title"><span class="icon icon-pv"></span> Principal Variation</span>
+                </div>
+                <div class="card-body">
+                    <div class="pv-line">@_bestMove.PrincipalVariation</div>
+                </div>
+            </div>
+        }
+
+        <!-- Opening Info -->
+        @if (_opening != null)
+        {
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title"><span class="icon icon-book"></span> Opening</span>
+                </div>
+                <div class="card-body">
+                    <div class="opening-info">
+                        <span class="opening-eco">@_opening.Eco</span>
+                        <span class="opening-name">@_opening.Name</span>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- FEN Input -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title"><span class="icon icon-fen"></span> Position</span>
+            </div>
+            <div class="card-body">
+                <div class="input-group">
+                    <input type="text" class="input" @bind="_currentFen" @bind:event="oninput" placeholder="Enter FEN notation..." />
+                    <button class="btn btn-secondary" @onclick="LoadFen">Load</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- File Upload -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title"><span class="icon icon-upload"></span> Import</span>
+            </div>
+            <div class="card-body">
+                <div class="upload-zone">
+                    <InputFile OnChange="HandleFileUpload" accept="image/*,.pgn" />
+                    <div class="upload-icon">♜</div>
+                    <div class="upload-text">Drop image or PGN file</div>
+                    <div class="upload-hint">Supports PNG, JPG, and PGN files</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Coach Message -->
+        @if (!string.IsNullOrEmpty(_coachMessage))
+        {
+            <div class="card coach-card">
+                <div class="card-header">
+                    <span class="card-title"><span class="icon icon-coach"></span> AI Coach</span>
+                </div>
+                <div class="card-body">
+                    <p class="coach-message">@_coachMessage</p>
+                </div>
+            </div>
+        }
+
+        <!-- Analyzing State -->
+        @if (_isAnalyzing)
+        {
+            <div class="analyzing-state">
+                <div class="spinner"></div>
+                <span class="analyzing-text">Stockfish is thinking... Depth @_analysisDepth</span>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private string _currentFen = FenParser.StartingPosition;
+    private bool _flipBoard = false;
+    private bool _isAnalyzing = false;
+    private int _analysisDepth = 0;
+
+    private double? _evaluation;
+    private int? _mateIn;
+    private BestMoveResponse? _bestMove;
+    private List<MoveAnalysis>? _topMoves;
+    private OpeningInfo? _opening;
+    private string? _coachMessage;
+
+    protected override void OnInitialized()
+    {
+        _coachMessage = "Welcome! Upload a chess board image or enter a FEN position, then click Analyze.";
+    }
+
+    private void FlipBoard() => _flipBoard = !_flipBoard;
+
+    private void ResetBoard()
+    {
+        _currentFen = FenParser.StartingPosition;
+        _evaluation = null;
+        _mateIn = null;
+        _bestMove = null;
+        _topMoves = null;
+        _opening = null;
+        _analysisDepth = 0;
+        _coachMessage = "Board reset to starting position.";
+        StateHasChanged();
+    }
+
+    private async Task LoadFen()
+    {
+        try
+        {
+            var result = await ApiService.ValidateFenAsync(_currentFen);
+            if (result?.IsValid == true)
+            {
+                _coachMessage = "Position loaded successfully. Click Analyze to evaluate.";
+                await TryIdentifyOpening();
+            }
+            else
+            {
+                _coachMessage = $"Invalid FEN: {result?.Error ?? "Unknown format"}";
+            }
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            _coachMessage = $"Error: {ex.Message}";
+            StateHasChanged();
+        }
+    }
+
+    private async Task Analyze()
+    {
+        if (_isAnalyzing) return;
+
+        _isAnalyzing = true;
+        _analysisDepth = 0;
+        _coachMessage = "Starting deep analysis with Stockfish...";
+        StateHasChanged();
+
+        try
+        {
+            // Run both in parallel
+            var topMovesTask = ApiService.GetTopMovesAsync(_currentFen, 3, 20);
+            var bestMoveTask = ApiService.GetBestMoveAsync(_currentFen, 20);
+            var openingTask = TryIdentifyOpening();
+
+            await Task.WhenAll(topMovesTask, bestMoveTask, openingTask);
+
+            _topMoves = await topMovesTask;
+            _bestMove = await bestMoveTask;
+
+            if (_bestMove != null)
+            {
+                _evaluation = _bestMove.Evaluation;
+                _mateIn = _bestMove.MateIn;
+                _analysisDepth = _bestMove.Depth;
+            }
+
+            GenerateCoachMessage();
+        }
+        catch (Exception ex)
+        {
+            _coachMessage = $"Analysis failed: {ex.Message}. Make sure the API is running.";
+        }
+        finally
+        {
+            _isAnalyzing = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task TryIdentifyOpening()
+    {
+        try
+        {
+            _opening = await ApiService.IdentifyOpeningAsync(_currentFen);
+        }
+        catch
+        {
+            _opening = null;
+        }
+    }
+
+    private async Task HandleMove(string move)
+    {
+        _coachMessage = $"Move played: {move}";
+        StateHasChanged();
+    }
+
+    private async Task HandleFileUpload(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        _coachMessage = $"Processing {file.Name}...";
+        StateHasChanged();
+
+        try
+        {
+            if (file.ContentType.StartsWith("image/"))
+            {
+                using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+                var result = await ApiService.RecognizeBoardAsync(stream, file.Name);
+
+                if (result?.Fen != null)
+                {
+                    _currentFen = result.Fen;
+                    _coachMessage = "Board recognized! Click Analyze to evaluate the position.";
+                    await TryIdentifyOpening();
+                }
+                else
+                {
+                    _coachMessage = "Could not recognize the chess board. Try a clearer image.";
+                }
+            }
+            else if (file.Name.EndsWith(".pgn", StringComparison.OrdinalIgnoreCase))
+            {
+                using var streamReader = new StreamReader(file.OpenReadStream());
+                var pgn = await streamReader.ReadToEndAsync();
+
+                _coachMessage = "Analyzing PGN game... This may take a moment.";
+                StateHasChanged();
+
+                var analysis = await ApiService.AnalyzePgnAsync(pgn);
+                if (analysis != null)
+                {
+                    _coachMessage = $"Game analyzed! White CPL: {analysis.WhiteAverageCentipawnLoss:F1}, Black CPL: {analysis.BlackAverageCentipawnLoss:F1}";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _coachMessage = $"Failed to process file: {ex.Message}";
+        }
+
+        StateHasChanged();
+    }
+
+    private void GenerateCoachMessage()
+    {
+        if (_evaluation == null && _mateIn == null)
+        {
+            _coachMessage = "Analysis complete.";
+            return;
+        }
+
+        if (_mateIn.HasValue)
+        {
+            _coachMessage = _mateIn > 0
+                ? $"Checkmate in {_mateIn}! White wins with perfect play."
+                : $"Checkmate in {Math.Abs(_mateIn.Value)}! Black wins with perfect play.";
+            return;
+        }
+
+        var eval = _evaluation ?? 0;
+        _coachMessage = eval switch
+        {
+            > 3 => "White has a decisive advantage. Look for tactical strikes!",
+            > 1.5 => "White has a clear advantage. Maintain pressure.",
+            > 0.5 => "White has a slight edge. Small improvements matter.",
+            > -0.5 => "Position is balanced. Both sides have chances.",
+            > -1.5 => "Black has a slight edge. Small improvements matter.",
+            > -3 => "Black has a clear advantage. Maintain pressure.",
+            _ => "Black has a decisive advantage. Look for tactical strikes!"
+        };
+    }
+
+    private string FormatEval(double? eval, int? mateIn)
+    {
+        if (mateIn.HasValue)
+            return mateIn > 0 ? $"M{mateIn}" : $"M{Math.Abs(mateIn.Value)}";
+
+        if (!eval.HasValue) return "0.00";
+
+        var sign = eval >= 0 ? "+" : "";
+        return $"{sign}{eval:F2}";
+    }
+
+    private int GetEvalBarWidth()
+    {
+        if (_mateIn.HasValue)
+            return _mateIn > 0 ? 100 : 0;
+
+        if (!_evaluation.HasValue) return 50;
+
+        // Convert eval to percentage (sigmoid-like)
+        var eval = Math.Clamp(_evaluation.Value, -5, 5);
+        return (int)(50 + eval * 10);
+    }
+
+    private string GetEvalClass()
+    {
+        if (_mateIn > 0 || _evaluation > 0.5) return "positive";
+        if (_mateIn < 0 || _evaluation < -0.5) return "negative";
+        return "neutral";
+    }
+}

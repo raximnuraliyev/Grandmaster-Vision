@@ -1,7 +1,22 @@
 @using GrandmasterVision.Core.Services
+@using GrandmasterVision.Client.Services
+@inject IJSRuntime JS
+@implements IAsyncDisposable
 
-<div class="chess-board-container">
-    <div class="chess-board">
+<div class="board-container">
+    <!-- Vertical Evaluation Bar -->
+    <div class="eval-bar-vertical">
+        <div class="eval-bar-fill" style="height: @GetEvalHeight()%"></div>
+        @if (Evaluation.HasValue || MateIn.HasValue)
+        {
+            <span class="eval-bar-label @(GetEvalHeight() > 50 ? "top" : "bottom")">
+                @FormatEval()
+            </span>
+        }
+    </div>
+
+    <!-- Chessboard with Arrow Overlay -->
+    <div class="chess-board" @ref="_boardRef" style="width: @(BoardSize)px; height: @(BoardSize)px;">
         @for (int rank = 0; rank < 8; rank++)
         {
             @for (int file = 0; file < 8; file++)
@@ -12,55 +27,121 @@
                 var piece = GetPieceAt(r, f);
                 var isLight = (r + f) % 2 == 0;
                 var isSelected = square == _selectedSquare;
-                var isLastMove = square == _lastMoveFrom || square == _lastMoveTo;
-                var showRankLabel = file == 0;
-                var showFileLabel = rank == 7;
+                var isLastMoveFrom = square == LastMoveFrom;
+                var isLastMoveTo = square == LastMoveTo;
+                var isLegalMove = _legalMoves.Contains(square);
+                var isLegalCapture = isLegalMove && GetPieceAtSquare(square) != Piece.None;
                 var displayRank = FlipBoard ? (r + 1) : (8 - r);
                 var displayFile = FlipBoard ? (char)('h' - f) : (char)('a' + f);
+                var classification = GetMoveClassification(square);
 
-                <div class="square @(isLight ? "light" : "dark") @(isSelected ? "selected" : "") @(isLastMove ? "last-move" : "")"
-                     @onclick="() => OnSquareClick(square)">
+                <div class="square @(isLight ? "light" : "dark")
+                            @(isSelected ? "selected" : "")
+                            @(isLastMoveFrom ? "last-move-from" : "")
+                            @(isLastMoveTo ? "last-move-to" : "")
+                            @(isLegalMove && !isLegalCapture ? "legal-move" : "")
+                            @(isLegalCapture ? "legal-capture" : "")"
+                     @onclick="() => OnSquareClick(square)"
+                     @ondragstart="(e) => OnDragStart(e, square)"
+                     @ondragover:preventDefault
+                     @ondrop="() => OnDrop(square)"
+                     data-square="@square">
 
-                    @if (showRankLabel)
+                    @if (ShowCoordinates)
                     {
-                        <span class="coord rank @(isLight ? "dark-text" : "light-text")">@displayRank</span>
-                    }
-                    @if (showFileLabel)
-                    {
-                        <span class="coord file @(isLight ? "dark-text" : "light-text")">@displayFile</span>
+                        @if (file == 0)
+                        {
+                            <span class="coord rank @(isLight ? "dark-text" : "light-text")">@displayRank</span>
+                        }
+                        @if (rank == 7)
+                        {
+                            <span class="coord file @(isLight ? "dark-text" : "light-text")">@displayFile</span>
+                        }
                     }
 
                     @if (piece != Piece.None)
                     {
-                        <img class="piece" src="images/pieces/@(GetPieceCode(piece)).svg" alt="@piece" draggable="false" />
+                        <img class="piece @(_draggingSquare == square ? "dragging" : "")"
+                             src="images/pieces/@(GetPieceCode(piece)).svg"
+                             alt="@piece"
+                             draggable="true" />
+                    }
+
+                    @if (ShowMoveClassification && classification != MoveClassification.None && isLastMoveTo)
+                    {
+                        <div class="move-icon @GetClassificationClass(classification)">
+                            @GetClassificationSymbol(classification)
+                        </div>
                     }
                 </div>
             }
         }
-    </div>
 
-    @if (Evaluation.HasValue || MateIn.HasValue)
-    {
-        <div class="eval-bar-vertical">
-            <div class="eval-white" style="height: @GetEvalHeight()%"></div>
-            <div class="eval-black"></div>
-            <span class="eval-label">@FormatEval()</span>
-        </div>
-    }
+        <!-- SVG Arrow Overlay - Rendered on top of pieces -->
+        <svg class="arrow-overlay"
+             id="arrow-overlay-svg"
+             @ref="_arrowSvgRef"
+             viewBox="0 0 @BoardSize @BoardSize"
+             preserveAspectRatio="xMidYMid meet">
+
+            @if (ArrowMode != Services.ArrowMode.None)
+            {
+                @* Render all visible arrows from the consolidated list *@
+                @foreach (var arrow in GetVisibleArrows())
+                {
+                    var coords = GetArrowCoordinates(arrow.FromSquare, arrow.ToSquare);
+                    var typeClass = arrow.TypeString;
+
+                    <g class="arrow-group @typeClass" opacity="@GetArrowOpacity(arrow.Type)">
+                        <line class="arrow-line @typeClass"
+                              x1="@coords.FromX" y1="@coords.FromY"
+                              x2="@coords.ToX" y2="@coords.ToY" />
+                        <polygon class="arrowhead @typeClass"
+                                 points="@coords.ArrowheadPoints" />
+                    </g>
+                }
+            }
+        </svg>
+    </div>
 </div>
 
 @code {
+    // Position & Display
     [Parameter] public string Fen { get; set; } = FenParser.StartingPosition;
-    [Parameter] public EventCallback<string> OnMove { get; set; }
-    [Parameter] public EventCallback<string> OnFenChange { get; set; }
+    [Parameter] public bool FlipBoard { get; set; } = false;
+    [Parameter] public int BoardSize { get; set; } = 480;
+    [Parameter] public bool ShowCoordinates { get; set; } = true;
+    [Parameter] public bool ShowMoveClassification { get; set; } = true;
+
+    // Evaluation
     [Parameter] public double? Evaluation { get; set; }
     [Parameter] public int? MateIn { get; set; }
-    [Parameter] public bool FlipBoard { get; set; } = false;
 
+    // Arrows
+    [Parameter] public string BestMoveSan { get; set; } = "";
+    [Parameter] public ArrowMode ArrowMode { get; set; } = ArrowMode.BestMove;
+    [Parameter] public bool ShowThreatArrows { get; set; } = false;
+    [Parameter] public List<ArrowData>? CoachArrows { get; set; }
+    [Parameter] public List<ArrowData>? ThreatArrows { get; set; }
+    [Parameter] public List<ArrowData>? AlternativeArrows { get; set; }
+
+    // Last Move Highlight
+    [Parameter] public string? LastMoveFrom { get; set; }
+    [Parameter] public string? LastMoveTo { get; set; }
+    [Parameter] public MoveClassification LastMoveClassification { get; set; } = MoveClassification.None;
+
+    // Events
+    [Parameter] public EventCallback<string> OnMove { get; set; }
+    [Parameter] public EventCallback<string> OnFenChange { get; set; }
+
+    // Internal State
     private ChessPosition _position = new();
     private string? _selectedSquare;
-    private string? _lastMoveFrom;
-    private string? _lastMoveTo;
+    private string? _draggingSquare;
+    private HashSet<string> _legalMoves = new();
+    private ElementReference _boardRef;
+    private ElementReference _arrowSvgRef;
+    private float _squareSize => BoardSize / 8f;
 
     protected override void OnInitialized()
     {
@@ -79,6 +160,20 @@
         }
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Initialize JS arrow renderer
+            await JS.InvokeVoidAsync("ArrowRenderer.initialize", "arrow-overlay-svg", BoardSize);
+            await JS.InvokeVoidAsync("ArrowRenderer.setFlipped", FlipBoard);
+        }
+    }
+
+    // =====================================================
+    // PIECE & SQUARE LOGIC
+    // =====================================================
+
     private Piece GetPieceAt(int rank, int file)
     {
         var r = FlipBoard ? 7 - rank : rank;
@@ -95,50 +190,19 @@
 
     private string GetPieceCode(Piece piece) => piece switch
     {
-        Piece.WhiteKing => "wK",
-        Piece.WhiteQueen => "wQ",
-        Piece.WhiteRook => "wR",
-        Piece.WhiteBishop => "wB",
-        Piece.WhiteKnight => "wN",
-        Piece.WhitePawn => "wP",
-        Piece.BlackKing => "bK",
-        Piece.BlackQueen => "bQ",
-        Piece.BlackRook => "bR",
-        Piece.BlackBishop => "bB",
-        Piece.BlackKnight => "bN",
-        Piece.BlackPawn => "bP",
+        Piece.WhiteKing => "wK", Piece.WhiteQueen => "wQ", Piece.WhiteRook => "wR",
+        Piece.WhiteBishop => "wB", Piece.WhiteKnight => "wN", Piece.WhitePawn => "wP",
+        Piece.BlackKing => "bK", Piece.BlackQueen => "bQ", Piece.BlackRook => "bR",
+        Piece.BlackBishop => "bB", Piece.BlackKnight => "bN", Piece.BlackPawn => "bP",
         _ => ""
     };
-
-    private void OnSquareClick(string square)
-    {
-        if (_selectedSquare == null)
-        {
-            var piece = GetPieceAtSquare(square);
-            if (piece != Piece.None && IsCorrectColor(piece))
-            {
-                _selectedSquare = square;
-            }
-        }
-        else if (_selectedSquare == square)
-        {
-            _selectedSquare = null;
-        }
-        else
-        {
-            MakeMove(_selectedSquare, square);
-        }
-    }
 
     private Piece GetPieceAtSquare(string square)
     {
         if (square.Length != 2) return Piece.None;
-
         int file = square[0] - 'a';
         int rank = 8 - (square[1] - '0');
-
         if (rank < 0 || rank > 7 || file < 0 || file > 7) return Piece.None;
-
         return _position.Board[rank, file];
     }
 
@@ -148,15 +212,191 @@
         return isWhitePiece == _position.WhiteToMove;
     }
 
+    // =====================================================
+    // MOVE HANDLING
+    // =====================================================
+
+    private void OnSquareClick(string square)
+    {
+        if (_selectedSquare == null)
+        {
+            var piece = GetPieceAtSquare(square);
+            if (piece != Piece.None && IsCorrectColor(piece))
+            {
+                _selectedSquare = square;
+                CalculateLegalMoves(square);
+            }
+        }
+        else if (_selectedSquare == square)
+        {
+            _selectedSquare = null;
+            _legalMoves.Clear();
+        }
+        else
+        {
+            MakeMove(_selectedSquare, square);
+        }
+    }
+
+    private void OnDragStart(DragEventArgs e, string square)
+    {
+        var piece = GetPieceAtSquare(square);
+        if (piece != Piece.None && IsCorrectColor(piece))
+        {
+            _draggingSquare = square;
+            _selectedSquare = square;
+            CalculateLegalMoves(square);
+        }
+    }
+
+    private void OnDrop(string targetSquare)
+    {
+        if (_draggingSquare != null && _draggingSquare != targetSquare)
+        {
+            MakeMove(_draggingSquare, targetSquare);
+        }
+        _draggingSquare = null;
+    }
+
     private async void MakeMove(string from, string to)
     {
         var move = from + to;
-        _lastMoveFrom = from;
-        _lastMoveTo = to;
         _selectedSquare = null;
-
+        _legalMoves.Clear();
+        _draggingSquare = null;
         await OnMove.InvokeAsync(move);
     }
+
+    private void CalculateLegalMoves(string square)
+    {
+        _legalMoves.Clear();
+        // Basic legal move visualization (simplified)
+        // In production, this would use proper move generation
+        var piece = GetPieceAtSquare(square);
+        if (piece == Piece.None) return;
+
+        // Add simple move targets for visualization
+        // This is a placeholder - real implementation would calculate all legal moves
+    }
+
+    // =====================================================
+    // ARROW RENDERING
+    // =====================================================
+
+    /// <summary>
+    /// Gets all arrows that should be visible based on current settings
+    /// </summary>
+    private List<ArrowData> GetVisibleArrows()
+    {
+        var arrows = new List<ArrowData>();
+
+        // Best Move Arrow (blue)
+        if ((ArrowMode == Services.ArrowMode.BestMove || ArrowMode == Services.ArrowMode.Both)
+            && !string.IsNullOrEmpty(BestMoveSan) && BestMoveSan.Length >= 4)
+        {
+            arrows.Add(new ArrowData
+            {
+                FromSquare = BestMoveSan.Substring(0, 2),
+                ToSquare = BestMoveSan.Substring(2, 2),
+                Type = ArrowType.BestMove
+            });
+        }
+
+        // Coach Arrows (yellow/gold) - alternative good moves
+        if ((ArrowMode == Services.ArrowMode.Coach || ArrowMode == Services.ArrowMode.Both) && CoachArrows != null)
+        {
+            arrows.AddRange(CoachArrows);
+        }
+
+        // Threat Arrows (red) - opponent's best response
+        if (ShowThreatArrows && ThreatArrows != null)
+        {
+            arrows.AddRange(ThreatArrows);
+        }
+
+        // Alternative Arrows (purple) - other candidate moves
+        if (AlternativeArrows != null)
+        {
+            arrows.AddRange(AlternativeArrows);
+        }
+
+        return arrows;
+    }
+
+    /// <summary>
+    /// Returns opacity for arrow type (best move is most prominent)
+    /// </summary>
+    private string GetArrowOpacity(ArrowType type) => type switch
+    {
+        ArrowType.BestMove => "0.9",
+        ArrowType.Threat => "0.85",
+        ArrowType.Coach => "0.75",
+        ArrowType.Alternative => "0.65",
+        _ => "0.8"
+    };
+
+    private (float FromX, float FromY, float ToX, float ToY, string ArrowheadPoints) GetArrowCoordinates(string from, string to)
+    {
+        var fromCoords = SquareToPixel(from);
+        var toCoords = SquareToPixel(to);
+
+        // Calculate arrow direction for arrowhead offset
+        float angle = (float)Math.Atan2(toCoords.Y - fromCoords.Y, toCoords.X - fromCoords.X);
+        float arrowheadSize = _squareSize * 0.35f;
+        float offset = _squareSize * 0.15f;
+
+        // Offset start and end points
+        float startX = fromCoords.X + (float)Math.Cos(angle) * offset;
+        float startY = fromCoords.Y + (float)Math.Sin(angle) * offset;
+        float endX = toCoords.X - (float)Math.Cos(angle) * (offset + arrowheadSize);
+        float endY = toCoords.Y - (float)Math.Sin(angle) * (offset + arrowheadSize);
+
+        // Generate arrowhead points
+        var arrowheadPoints = GenerateArrowheadPoints(toCoords.X, toCoords.Y, angle, arrowheadSize);
+
+        return (startX, startY, endX, endY, arrowheadPoints);
+    }
+
+    private (float X, float Y) SquareToPixel(string square)
+    {
+        if (string.IsNullOrEmpty(square) || square.Length != 2)
+            return (0, 0);
+
+        int file = square[0] - 'a';
+        int rank = square[1] - '1';
+
+        float x, y;
+        if (FlipBoard)
+        {
+            x = (7 - file) * _squareSize + _squareSize / 2;
+            y = rank * _squareSize + _squareSize / 2;
+        }
+        else
+        {
+            x = file * _squareSize + _squareSize / 2;
+            y = (7 - rank) * _squareSize + _squareSize / 2;
+        }
+
+        return (x, y);
+    }
+
+    private string GenerateArrowheadPoints(float tipX, float tipY, float angle, float size)
+    {
+        float spread = (float)(Math.PI / 5); // 36 degrees
+
+        float p1X = tipX;
+        float p1Y = tipY;
+        float p2X = tipX - size * (float)Math.Cos(angle - spread);
+        float p2Y = tipY - size * (float)Math.Sin(angle - spread);
+        float p3X = tipX - size * (float)Math.Cos(angle + spread);
+        float p3Y = tipY - size * (float)Math.Sin(angle + spread);
+
+        return $"{p1X:F1},{p1Y:F1} {p2X:F1},{p2Y:F1} {p3X:F1},{p3Y:F1}";
+    }
+
+    // =====================================================
+    // EVALUATION BAR
+    // =====================================================
 
     private string FormatEval()
     {
@@ -172,7 +412,57 @@
         if (MateIn.HasValue)
             return MateIn > 0 ? 100 : 0;
         if (!Evaluation.HasValue) return 50;
+        // Sigmoid-like curve for eval bar
         var eval = Math.Clamp(Evaluation.Value, -10, 10);
         return (int)(50 + eval * 5);
+    }
+
+    // =====================================================
+    // MOVE CLASSIFICATION
+    // =====================================================
+
+    private MoveClassification GetMoveClassification(string square)
+    {
+        if (square == LastMoveTo)
+            return LastMoveClassification;
+        return MoveClassification.None;
+    }
+
+    private string GetClassificationClass(MoveClassification classification) => classification switch
+    {
+        MoveClassification.Brilliant => "brilliant",
+        MoveClassification.Great => "great",
+        MoveClassification.Best => "best",
+        MoveClassification.Inaccuracy => "inaccuracy",
+        MoveClassification.Mistake => "mistake",
+        MoveClassification.Blunder => "blunder",
+        _ => ""
+    };
+
+    private string GetClassificationSymbol(MoveClassification classification) => classification switch
+    {
+        MoveClassification.Brilliant => "!!",
+        MoveClassification.Great => "!",
+        MoveClassification.Best => "★",
+        MoveClassification.Inaccuracy => "?!",
+        MoveClassification.Mistake => "?",
+        MoveClassification.Blunder => "??",
+        _ => ""
+    };
+
+    // =====================================================
+    // CLEANUP
+    // =====================================================
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("ArrowRenderer.clearArrows");
+        }
+        catch
+        {
+            // Ignore JS interop errors during disposal
+        }
     }
 }

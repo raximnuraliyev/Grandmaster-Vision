@@ -1,7 +1,7 @@
 {
   "mainAssemblyName": "GrandmasterVision.Client",
   "resources": {
-    "hash": "sha256-s/hs8fCrfxXTLx5+4Ux4hk+RuVZ7DkL07Z/p2mqXel8=",
+    "hash": "sha256-fxDqiFc5Sd0brFz/6DQfIJ0XWLxlyg2afT99Xd3fh2U=",
     "jsModuleNative": {
       "dotnet.native.js": "sha256-oksVqHEW5dic8ULICrYkuUVNascZfAw7ZPMG45TR/ak="
     },
@@ -214,12 +214,12 @@
       "WindowsBase.wasm": "sha256-ZNubnH6lgybyHtAdlMT40aDBYT2V7npJIDu1AwBtujs=",
       "mscorlib.wasm": "sha256-3waJ44t0BBPDuFSBnvKXk4ReWykH4S/GJoncIfrAlvg=",
       "netstandard.wasm": "sha256-K2fLR0yH1WiUkzlu09Y2p2sm9BhyhGsoYJBopqdIuV4=",
-      "GrandmasterVision.Core.wasm": "sha256-RnvDU4rIHr1OYbJxon2VlUpfSxmGkSd6g8oWXzz0Wsk=",
-      "GrandmasterVision.Client.wasm": "sha256-i08ja1r3RBpcR2QyzaWS5vajdQqmq64YLzFJV97GVbE="
+      "GrandmasterVision.Core.wasm": "sha256-oUEDU1au3gSYr6PN09uIAdjKVOSqHMV2xEEIus4akDU=",
+      "GrandmasterVision.Client.wasm": "sha256-1NUFMMqo/NBHzwotBgHnoq7fQ+giY/UpdbGAmNk3uO4="
     },
     "pdb": {
-      "GrandmasterVision.Core.pdb": "sha256-BuLyEGk7/OEd1FbW4F/1KPzFhAhe36CWKmikQy+25rw=",
-      "GrandmasterVision.Client.pdb": "sha256-UsC3JNgIvLZNf8IfaSxrvsY/sKZ0o90KurUXcPf5jwE="
+      "GrandmasterVision.Core.pdb": "sha256-qwcReEAikfIWnrSLfokVkcppzkW5TuzbzZGQ6wGbtMU=",
+      "GrandmasterVision.Client.pdb": "sha256-RX6Bb+ekpjU7vH0ZkBJHgNd06h6PLreTVoGRZ/+Dp7s="
     }
   },
   "cacheBootResources": true,

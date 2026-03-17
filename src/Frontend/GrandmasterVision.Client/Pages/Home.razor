@@ -3,29 +3,132 @@
 @using GrandmasterVision.Client.Services
 @using GrandmasterVision.Core.Services
 @inject ChessApiService ApiService
+@inject LichessExplorerService ExplorerService
+@inject IJSRuntime JS
+@implements IDisposable
 
-<PageTitle>Grandmaster Vision - AI Chess Analysis</PageTitle>
+<PageTitle>Grandmaster Vision - Professional Chess Analysis</PageTitle>
 
-<div class="analysis-grid">
+<div class="analysis-suite">
+    <!-- Header Bar -->
+    <div class="header-bar">
+        <div class="header-logo">
+            <div class="header-logo-icon">♔</div>
+            <span>Grandmaster Vision</span>
+        </div>
+        <div class="header-controls">
+            <button class="btn-icon" @onclick="() => _showSettings = true" title="Settings">
+                ⚙️
+            </button>
+        </div>
+    </div>
+
+    <!-- Left Column: Board Section -->
     <div class="board-section">
+        <!-- Top Player Banner (Black by default, White if flipped) -->
+        <div class="player-banner">
+            <div class="player-info">
+                <div class="player-avatar @(_flipBoard ? "white" : "black")">
+                    @(_flipBoard ? _whitePlayer.Name[0] : _blackPlayer.Name[0])
+                </div>
+                <div class="player-details">
+                    <div class="player-name">@(_flipBoard ? _whitePlayer.Name : _blackPlayer.Name)</div>
+                    <div class="player-rating">@(_flipBoard ? _whitePlayer.Rating : _blackPlayer.Rating)</div>
+                </div>
+                <div class="player-stats">
+                    @{
+                        var topMaterial = _flipBoard ? GetMaterialAdvantage(true) : GetMaterialAdvantage(false);
+                    }
+                    @if (topMaterial != 0)
+                    {
+                        <div class="material-advantage @(topMaterial > 0 ? "positive" : topMaterial < 0 ? "negative" : "neutral")">
+                            @(topMaterial > 0 ? $"+{topMaterial}" : topMaterial.ToString())
+                        </div>
+                    }
+                    <div class="captured-pieces">
+                        @foreach (var piece in (_flipBoard ? _whiteCaptured : _blackCaptured))
+                        {
+                            <span>@piece</span>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="digital-clock">
+                <div class="clock-display @(IsTopPlayerActive() ? "active" : "")">
+                    @(_flipBoard ? FormatTime(_whiteTime) : FormatTime(_blackTime))
+                </div>
+            </div>
+        </div>
+
+        <!-- Chessboard -->
         <ChessBoard @key="_boardKey"
                     Fen="@_currentFen"
                     Evaluation="@_evaluation"
                     MateIn="@_mateIn"
-                    OnMove="HandleMove"
-                    FlipBoard="@_flipBoard" />
+                    BestMoveSan="@_bestMoveSan"
+                    ArrowMode="@_arrowMode"
+                    ShowThreatArrows="@_showThreatArrows"
+                    CoachArrows="@_coachArrows"
+                    ThreatArrows="@_threatArrows"
+                    LastMoveFrom="@_lastMoveFrom"
+                    LastMoveTo="@_lastMoveTo"
+                    LastMoveClassification="@_lastMoveClassification"
+                    ShowCoordinates="@_showCoordinates"
+                    ShowMoveClassification="@_showMoveClassifications"
+                    FlipBoard="@_flipBoard"
+                    OnMove="HandleMove" />
 
-        <div class="board-controls">
-            <button class="btn btn-secondary" @onclick="FlipBoard">
+        <!-- Bottom Player Banner (White by default, Black if flipped) -->
+        <div class="player-banner">
+            <div class="player-info">
+                <div class="player-avatar @(_flipBoard ? "black" : "white")">
+                    @(_flipBoard ? _blackPlayer.Name[0] : _whitePlayer.Name[0])
+                </div>
+                <div class="player-details">
+                    <div class="player-name">@(_flipBoard ? _blackPlayer.Name : _whitePlayer.Name)</div>
+                    <div class="player-rating">@(_flipBoard ? _blackPlayer.Rating : _whitePlayer.Rating)</div>
+                </div>
+                <div class="player-stats">
+                    @{
+                        var bottomMaterial = _flipBoard ? GetMaterialAdvantage(false) : GetMaterialAdvantage(true);
+                    }
+                    @if (bottomMaterial != 0)
+                    {
+                        <div class="material-advantage @(bottomMaterial > 0 ? "positive" : bottomMaterial < 0 ? "negative" : "neutral")">
+                            @(bottomMaterial > 0 ? $"+{bottomMaterial}" : bottomMaterial.ToString())
+                        </div>
+                    }
+                    <div class="captured-pieces">
+                        @foreach (var piece in (_flipBoard ? _blackCaptured : _whiteCaptured))
+                        {
+                            <span>@piece</span>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="digital-clock">
+                <div class="clock-display @(IsBottomPlayerActive() ? "active" : "")">
+                    @(_flipBoard ? FormatTime(_blackTime) : FormatTime(_whiteTime))
+                </div>
+            </div>
+        </div>
+
+        <!-- Board Control Bar -->
+        <div class="board-control-bar">
+            <button class="control-btn" @onclick="FlipBoard" title="Flip Board">
                 ⟲ Flip
             </button>
-            <button class="btn btn-secondary" @onclick="ResetBoard">
+            <button class="control-btn" @onclick="ResetBoard" title="Reset Position">
                 ↺ Reset
             </button>
-            <button class="btn btn-primary" @onclick="Analyze" disabled="@_isAnalyzing">
+            <button class="control-btn" @onclick="() => _showImageUpload = true" title="Import Screenshot">
+                📷 Import
+            </button>
+            <button class="control-btn primary" @onclick="Analyze" disabled="@_isAnalyzing" title="Analyze Position">
                 @if (_isAnalyzing)
                 {
-                    <span>⏳ Analyzing...</span>
+                    <span class="spinner" style="width:16px;height:16px;margin-right:8px;"></span>
+                    <span>Analyzing...</span>
                 }
                 else
                 {
@@ -34,167 +137,454 @@
             </button>
         </div>
 
-        <!-- Position Stats -->
-        <div class="position-stats">
-            <div class="stat">
-                <span class="stat-label">Turn</span>
-                <span class="stat-value">@(GetCurrentTurn())</span>
-            </div>
-            <div class="stat">
-                <span class="stat-label">Material</span>
-                <span class="stat-value @GetMaterialClass()">@GetMaterialBalance()</span>
-            </div>
-            <div class="stat">
-                <span class="stat-label">Move</span>
-                <span class="stat-value">@GetMoveNumber()</span>
-            </div>
-        </div>
-    </div>
-
-    <div class="analysis-panel">
-        <!-- Evaluation Card -->
-        <div class="card">
-            <div class="card-header">
-                <span class="card-title"><span class="icon icon-eval"></span> Evaluation</span>
-                @if (_analysisDepth > 0)
-                {
-                    <span class="badge badge-success">Depth @_analysisDepth</span>
-                }
-            </div>
-            <div class="card-body">
-                <div class="eval-bar-container">
-                    <div class="eval-bar">
-                        <div class="eval-bar-fill" style="width: @GetEvalBarWidth()%"></div>
-                    </div>
-                    <div class="eval-value @GetEvalClass()">@FormatEval(_evaluation, _mateIn)</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Top Moves Card -->
-        @if (_topMoves != null && _topMoves.Count > 0)
+        <!-- Image Upload Drop Zone -->
+        @if (_showImageUpload)
         {
-            <div class="card">
-                <div class="card-header">
-                    <span class="card-title"><span class="icon icon-moves"></span> Best Moves</span>
-                </div>
-                <div class="card-body">
-                    <div class="move-list">
-                        @foreach (var move in _topMoves)
+            <div class="image-upload-overlay" @onclick="() => _showImageUpload = false">
+                <div class="image-upload-modal" @onclick:stopPropagation>
+                    <div class="image-upload-header">
+                        <h3>Import Chess Position from Image</h3>
+                        <button class="close-btn" @onclick="() => _showImageUpload = false">×</button>
+                    </div>
+                    <div class="image-drop-zone @(_isDraggingImage ? "dragging" : "")"
+                         @ondragenter="HandleDragEnter"
+                         @ondragleave="HandleDragLeave"
+                         @ondragover:preventDefault
+                         @ondrop="HandleImageDrop">
+                        @if (_isProcessingImage)
                         {
-                            <div class="move-item @(move.Rank == 1 ? "best" : "")">
-                                <div class="move-rank">@move.Rank</div>
-                                <span class="move-name">@move.Move</span>
-                                <span class="move-eval">@FormatEval(move.Evaluation, move.MateIn)</span>
+                            <div class="processing-indicator">
+                                <div class="spinner"></div>
+                                <p>Analyzing image...</p>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="drop-zone-content">
+                                <span class="drop-icon">📸</span>
+                                <p>Drag & drop a screenshot here</p>
+                                <p class="drop-hint">or click to browse</p>
+                                <InputFile OnChange="HandleImageUpload" accept="image/*" class="file-input" />
                             </div>
                         }
                     </div>
+                    @if (!string.IsNullOrEmpty(_imageUploadError))
+                    {
+                        <div class="upload-error">@_imageUploadError</div>
+                    }
+                    @if (!string.IsNullOrEmpty(_recognizedFen))
+                    {
+                        <div class="recognized-fen">
+                            <strong>Detected FEN:</strong>
+                            <code>@_recognizedFen</code>
+                            <button class="btn btn-primary" @onclick="ApplyRecognizedFen">Apply to Board</button>
+                        </div>
+                    }
                 </div>
-            </div>
-        }
-
-        <!-- Principal Variation -->
-        @if (_bestMove?.PrincipalVariation != null)
-        {
-            <div class="card">
-                <div class="card-header">
-                    <span class="card-title"><span class="icon icon-pv"></span> Best Line</span>
-                </div>
-                <div class="card-body">
-                    <div class="pv-line">@_bestMove.PrincipalVariation</div>
-                </div>
-            </div>
-        }
-
-        <!-- Opening Info -->
-        @if (_opening != null)
-        {
-            <div class="card">
-                <div class="card-header">
-                    <span class="card-title"><span class="icon icon-book"></span> Opening</span>
-                </div>
-                <div class="card-body">
-                    <div class="opening-info">
-                        <span class="opening-eco">@_opening.Eco</span>
-                        <span class="opening-name">@_opening.Name</span>
-                    </div>
-                </div>
-            </div>
-        }
-
-        <!-- FEN Input -->
-        <div class="card">
-            <div class="card-header">
-                <span class="card-title"><span class="icon icon-fen"></span> Position (FEN)</span>
-            </div>
-            <div class="card-body">
-                <div class="input-group">
-                    <input type="text" class="input" @bind="_fenInput" placeholder="Paste FEN notation..." />
-                    <button class="btn btn-secondary" @onclick="LoadFen">Load</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- File Upload -->
-        <div class="card">
-            <div class="card-header">
-                <span class="card-title"><span class="icon icon-upload"></span> Import Board</span>
-            </div>
-            <div class="card-body">
-                <div class="upload-zone">
-                    <InputFile OnChange="HandleFileUpload" accept="image/*,.pgn" />
-                    <div class="upload-icon">📷</div>
-                    <div class="upload-text">Drop screenshot or PGN</div>
-                    <div class="upload-hint">PNG, JPG, or PGN files</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Coach Message -->
-        @if (!string.IsNullOrEmpty(_coachMessage))
-        {
-            <div class="card coach-card">
-                <div class="card-header">
-                    <span class="card-title"><span class="icon icon-coach"></span> Coach</span>
-                </div>
-                <div class="card-body">
-                    <p class="coach-message">@_coachMessage</p>
-                </div>
-            </div>
-        }
-
-        <!-- Analyzing State -->
-        @if (_isAnalyzing)
-        {
-            <div class="analyzing-state">
-                <div class="spinner"></div>
-                <span class="analyzing-text">Stockfish analyzing... Depth @_analysisDepth</span>
             </div>
         }
     </div>
+
+    <!-- Right Column: Analysis Sidebar -->
+    <div class="analysis-sidebar">
+        <!-- Tabs -->
+        <div class="sidebar-tabs">
+            <button class="tab-button @(_activeTab == "analysis" ? "active" : "")"
+                    @onclick='() => _activeTab = "analysis"'>
+                Analysis
+            </button>
+            <button class="tab-button @(_activeTab == "games" ? "active" : "")"
+                    @onclick='() => _activeTab = "games"'>
+                Games
+            </button>
+            <button class="tab-button @(_activeTab == "explore" ? "active" : "")"
+                    @onclick='() => _activeTab = "explore"'>
+                Explore
+            </button>
+        </div>
+
+        <!-- Sidebar Content -->
+        <div class="sidebar-content">
+            @if (_activeTab == "analysis")
+            {
+                <!-- Analyzing Indicator -->
+                @if (_isAnalyzing)
+                {
+                    <div class="analyzing-indicator" style="margin: 12px;">
+                        <div class="spinner"></div>
+                        <span class="analyzing-text">
+                            Stockfish analyzing... <strong>Depth @_analysisDepth</strong>
+                        </span>
+                    </div>
+                }
+
+                <!-- Engine Lines -->
+                @if (_topMoves != null && _topMoves.Count > 0)
+                {
+                    <div class="engine-lines">
+                        <div class="engine-header">
+                            <span class="engine-title">
+                                <span>♛</span> Engine Lines
+                            </span>
+                            <span class="engine-depth">depth = @_analysisDepth</span>
+                        </div>
+                        @foreach (var line in _topMoves.Take(5))
+                        {
+                            var evalClass = line.MateIn.HasValue
+                                ? (line.MateIn > 0 ? "mate" : "mate black")
+                                : (line.Evaluation >= 0 ? "positive" : "negative");
+
+                            <div class="engine-line" @onclick="() => PlayEngineLine(line)">
+                                <span class="line-eval @evalClass">
+                                    @FormatEval(line.Evaluation, line.MateIn)
+                                </span>
+                                <span class="line-moves">
+                                    @(line.Line ?? line.Move)
+                                </span>
+                            </div>
+                        }
+                    </div>
+                }
+
+                <!-- Opening Explorer -->
+                @if (_opening != null)
+                {
+                    <div class="opening-explorer">
+                        <div class="opening-eco">@_opening.Eco</div>
+                        <div class="opening-name">@_opening.Name</div>
+                    </div>
+                }
+
+                <!-- Move Ledger -->
+                <div class="move-ledger">
+                    <div class="move-ledger-inner">
+                        @for (int i = 0; i < _moveHistory.Count; i += 2)
+                        {
+                            var moveNumber = (i / 2) + 1;
+                            var whiteIndex = i;
+                            var blackIndex = i + 1;
+
+                            <div class="move-number">@moveNumber.</div>
+
+                            <div class="move-cell @(_currentMoveIndex == whiteIndex ? "active" : "")"
+                                 @onclick="() => GoToMove(whiteIndex)">
+                                @if (_moveHistory[whiteIndex].Classification != MoveClassification.None)
+                                {
+                                    <span class="move-classification @GetClassificationClass(_moveHistory[whiteIndex].Classification)"></span>
+                                }
+                                @_moveHistory[whiteIndex].San
+                            </div>
+
+                            @if (blackIndex < _moveHistory.Count)
+                            {
+                                <div class="move-cell @(_currentMoveIndex == blackIndex ? "active" : "")"
+                                     @onclick="() => GoToMove(blackIndex)">
+                                    @if (_moveHistory[blackIndex].Classification != MoveClassification.None)
+                                    {
+                                        <span class="move-classification @GetClassificationClass(_moveHistory[blackIndex].Classification)"></span>
+                                    }
+                                    @_moveHistory[blackIndex].San
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="move-cell empty"></div>
+                            }
+                        }
+                    </div>
+                </div>
+            }
+            else if (_activeTab == "games")
+            {
+                <div style="padding: 24px; text-align: center; color: var(--text-muted);">
+                    <p style="font-size: 48px; margin-bottom: 16px;">📚</p>
+                    <p>Game database coming soon</p>
+                </div>
+            }
+            else if (_activeTab == "explore")
+            {
+                <div class="explore-content">
+                    @if (_isLoadingExplorer)
+                    {
+                        <div class="explore-loading">
+                            <div class="spinner"></div>
+                            <p>Loading opening data...</p>
+                        </div>
+                    }
+                    else if (_explorerData == null || !_explorerData.Moves.Any())
+                    {
+                        <div class="explore-empty">
+                            <p style="font-size: 36px;">📖</p>
+                            <p>No opening data found for this position</p>
+                            <p style="font-size: 12px;">Try an earlier position from the opening</p>
+                        </div>
+                    }
+                    else
+                    {
+                        @if (_explorerData.Opening != null)
+                        {
+                            <div class="opening-explorer">
+                                <div class="opening-eco">@_explorerData.Opening.Eco</div>
+                                <div class="opening-name">@_explorerData.Opening.Name</div>
+                            </div>
+                        }
+
+                        <div style="padding: var(--spacing-sm); background: var(--bg-tertiary); font-size: 11px; color: var(--text-muted);">
+                            @_explorerData.TotalGames.ToString("N0") games from masters database
+                        </div>
+
+                        <table class="explore-table">
+                            <thead>
+                                <tr>
+                                    <th>Move</th>
+                                    <th>Games</th>
+                                    <th>Results</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var move in _explorerData.Moves.Take(5))
+                                {
+                                    <tr @onclick="() => PlayExplorerMove(move.Uci)">
+                                        <td class="explore-move">@move.San</td>
+                                        <td class="explore-games">@move.TotalGames.ToString("N0")</td>
+                                        <td>
+                                            <div class="explore-stats">
+                                                <div class="stat-white" style="width: @(move.WhitePercentage)%"></div>
+                                                <div class="stat-draw" style="width: @(move.DrawPercentage)%"></div>
+                                                <div class="stat-black" style="width: @(move.BlackPercentage)%"></div>
+                                            </div>
+                                            <div class="explore-percentages">
+                                                <span>@move.WhitePercentage.ToString("F0")%</span>
+                                                <span>@move.DrawPercentage.ToString("F0")%</span>
+                                                <span>@move.BlackPercentage.ToString("F0")%</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                </div>
+            }
+
+            <!-- FEN Input (always visible in analysis tab) -->
+            @if (_activeTab == "analysis")
+            {
+                <div style="padding: 12px; border-top: 1px solid var(--border); margin-top: auto;">
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text"
+                               class="input"
+                               style="flex: 1; font-size: 11px;"
+                               @bind="_fenInput"
+                               placeholder="Paste FEN notation..." />
+                        <button class="btn btn-secondary" style="padding: 8px 12px;" @onclick="LoadFen">
+                            Load
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Navigation Footer -->
+        <div class="sidebar-footer">
+            <button class="nav-btn" @onclick="GoToFirstMove" disabled="@(_currentMoveIndex <= 0)" title="First Move">
+                ⏮
+            </button>
+            <button class="nav-btn" @onclick="GoToPreviousMove" disabled="@(_currentMoveIndex <= 0)" title="Previous">
+                ⏪
+            </button>
+            <button class="nav-btn play" @onclick="ToggleAutoplay" title="@(_isAutoplaying ? "Pause" : "Play")">
+                @(_isAutoplaying ? "⏸" : "▶")
+            </button>
+            <button class="nav-btn" @onclick="GoToNextMove" disabled="@(_currentMoveIndex >= _moveHistory.Count - 1)" title="Next">
+                ⏩
+            </button>
+            <button class="nav-btn" @onclick="GoToLastMove" disabled="@(_currentMoveIndex >= _moveHistory.Count - 1)" title="Last Move">
+                ⏭
+            </button>
+        </div>
+    </div>
 </div>
 
+<!-- Settings Modal -->
+@if (_showSettings)
+{
+    <div class="modal-overlay" @onclick="() => _showSettings = false">
+        <div class="settings-panel" @onclick:stopPropagation>
+            <div class="settings-header">
+                <h2 class="settings-title">Analysis Settings</h2>
+                <button class="settings-close" @onclick="() => _showSettings = false">×</button>
+            </div>
+
+            <div class="setting-group">
+                <label class="setting-label">Show Arrows</label>
+                <p class="setting-description">Control which engine arrows appear on the board</p>
+                <select class="setting-select" @bind="_arrowModeString">
+                    <option value="BestMove">Best Move Only</option>
+                    <option value="Coach">Coach Visualizations</option>
+                    <option value="Both">Both</option>
+                    <option value="None">None</option>
+                </select>
+            </div>
+
+            <div class="setting-group">
+                <div class="toggle-row">
+                    <span class="toggle-label">Show Threat Arrows</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" @bind="_showThreatArrows" />
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="setting-group">
+                <div class="toggle-row">
+                    <span class="toggle-label">Move Classification Icons</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" @bind="_showMoveClassifications" />
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="setting-group">
+                <div class="toggle-row">
+                    <span class="toggle-label">Show Coordinates</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" @bind="_showCoordinates" />
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="setting-group">
+                <div class="toggle-row">
+                    <span class="toggle-label">Autoplay Moves</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" @bind="_autoplayEnabled" />
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                @if (_autoplayEnabled)
+                {
+                    <select class="setting-select" style="margin-top: 8px;" @bind="_autoplayDelayMs">
+                        <option value="500">0.5 seconds</option>
+                        <option value="1000">1 second</option>
+                        <option value="1500">1.5 seconds</option>
+                        <option value="2000">2 seconds</option>
+                        <option value="3000">3 seconds</option>
+                    </select>
+                }
+            </div>
+        </div>
+    </div>
+}
+
 @code {
+    // State
     private string _currentFen = FenParser.StartingPosition;
     private string _fenInput = FenParser.StartingPosition;
     private bool _flipBoard = false;
     private bool _isAnalyzing = false;
+    private bool _isAutoplaying = false;
     private int _analysisDepth = 0;
     private int _boardKey = 0;
+    private string _activeTab = "analysis";
+    private bool _showSettings = false;
 
+    // Image Upload State
+    private bool _showImageUpload = false;
+    private bool _isDraggingImage = false;
+    private bool _isProcessingImage = false;
+    private string? _imageUploadError;
+    private string? _recognizedFen;
+
+    // Arrow & Visualization Settings
+    private ArrowMode _arrowMode = ArrowMode.BestMove;
+    private string _arrowModeString
+    {
+        get => _arrowMode.ToString();
+        set => _arrowMode = Enum.Parse<ArrowMode>(value);
+    }
+    private bool _showThreatArrows = false;
+    private bool _showMoveClassifications = true;
+    private bool _showCoordinates = true;
+    private bool _autoplayEnabled = false;
+    private int _autoplayDelayMs = 1500;
+    private string _bestMoveSan = "";
+    private List<ArrowData>? _coachArrows;
+    private List<ArrowData>? _threatArrows;
+
+    // Last Move
+    private string? _lastMoveFrom;
+    private string? _lastMoveTo;
+    private MoveClassification _lastMoveClassification = MoveClassification.None;
+
+    // Analysis Data
     private double? _evaluation;
     private int? _mateIn;
     private BestMoveResponse? _bestMove;
     private List<MoveAnalysis>? _topMoves;
     private OpeningInfo? _opening;
-    private string? _coachMessage;
+
+    // Move History
+    private List<MoveRecord> _moveHistory = new();
+    private int _currentMoveIndex = -1;
+
+    // Player Info
+    private PlayerInfo _whitePlayer = new() { Name = "You", Rating = "1900" };
+    private PlayerInfo _blackPlayer = new() { Name = "Stockfish", Rating = "3200" };
+    private TimeSpan _whiteTime = TimeSpan.FromMinutes(10);
+    private TimeSpan _blackTime = TimeSpan.FromMinutes(10);
+    private List<char> _whiteCaptured = new();
+    private List<char> _blackCaptured = new();
+
+    // Opening Explorer State
+    private OpeningExplorerResponse? _explorerData;
+    private bool _isLoadingExplorer = false;
+    private string? _lastExploredFen;
+
+    // Chess Clock State
+    private System.Threading.Timer? _clockTimer;
+    private bool _clockRunning = false;
+    private DateTime _lastTickTime;
+
+    // Coach State
+    private string? _coachExplanation;
+    private MoveClassification _lastMoveEvalClassification = MoveClassification.None;
+    private double? _evalBeforeMove;
+    private double? _evalAfterMove;
+
+    // =====================================================
+    // LIFECYCLE
+    // =====================================================
 
     protected override void OnInitialized()
     {
-        _coachMessage = "Welcome! Upload a chess board image or enter a FEN position, then click Analyze.";
+        // Initialize with sample moves for demo
+        _moveHistory = new List<MoveRecord>
+        {
+            new() { Number = 1, IsWhiteMove = true, San = "e4", Fen = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1", Classification = MoveClassification.Best },
+            new() { Number = 1, IsWhiteMove = false, San = "c5", Fen = "rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 2" },
+            new() { Number = 2, IsWhiteMove = true, San = "Nf3", Fen = "rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2", Classification = MoveClassification.Best },
+            new() { Number = 2, IsWhiteMove = false, San = "d6", Fen = "rnbqkbnr/pp2pppp/3p4/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 0 3" },
+            new() { Number = 3, IsWhiteMove = true, San = "d4", Fen = "rnbqkbnr/pp2pppp/3p4/2p5/3PP3/5N2/PPP2PPP/RNBQKB1R b KQkq d3 0 3" },
+            new() { Number = 3, IsWhiteMove = false, San = "cxd4", Fen = "rnbqkbnr/pp2pppp/3p4/8/3pP3/5N2/PPP2PPP/RNBQKB1R w KQkq - 0 4" },
+            new() { Number = 4, IsWhiteMove = true, San = "Nxd4", Fen = "rnbqkbnr/pp2pppp/3p4/8/3NP3/8/PPP2PPP/RNBQKB1R b KQkq - 0 4", Classification = MoveClassification.Best },
+        };
+        _currentMoveIndex = _moveHistory.Count - 1;
+        _currentFen = _moveHistory[_currentMoveIndex].Fen;
+        _opening = new OpeningInfo { Eco = "B54", Name = "Sicilian Defense: Open Variation" };
     }
 
-    private void FlipBoard() => _flipBoard = !_flipBoard;
+    // =====================================================
+    // BOARD ACTIONS
+    // =====================================================
+
+    private void FlipBoard()
+    {
+        _flipBoard = !_flipBoard;
+    }
 
     private void ResetBoard()
     {
@@ -204,30 +594,144 @@
         _mateIn = null;
         _bestMove = null;
         _topMoves = null;
-        _opening = null;
         _analysisDepth = 0;
-        _boardKey++; // Force ChessBoard component to re-create
-        _coachMessage = "Board reset to starting position.";
+        _bestMoveSan = "";
+        _lastMoveFrom = null;
+        _lastMoveTo = null;
+        _moveHistory.Clear();
+        _currentMoveIndex = -1;
+        _coachArrows = null;
+        _threatArrows = null;
+        _boardKey++;
+        ResetClocks();
         StateHasChanged();
+    }
+
+    // =====================================================
+    // IMAGE UPLOAD / COMPUTER VISION
+    // =====================================================
+
+    private void HandleDragEnter()
+    {
+        _isDraggingImage = true;
+    }
+
+    private void HandleDragLeave()
+    {
+        _isDraggingImage = false;
+    }
+
+    private async Task HandleImageDrop(DragEventArgs e)
+    {
+        _isDraggingImage = false;
+        // The actual file handling is done by InputFile component
+        // This just provides visual feedback
+    }
+
+    private async Task HandleImageUpload(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file == null) return;
+
+        // Validate file type
+        if (!file.ContentType.StartsWith("image/"))
+        {
+            _imageUploadError = "Please upload an image file (PNG, JPG, etc.)";
+            return;
+        }
+
+        // Max 10MB
+        if (file.Size > 10 * 1024 * 1024)
+        {
+            _imageUploadError = "Image too large. Maximum size is 10MB.";
+            return;
+        }
+
+        _isProcessingImage = true;
+        _imageUploadError = null;
+        _recognizedFen = null;
+        StateHasChanged();
+
+        try
+        {
+            using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+            var result = await ApiService.RecognizeBoardAsync(stream, file.Name);
+
+            if (result != null && result.Valid && !string.IsNullOrEmpty(result.Fen))
+            {
+                _recognizedFen = result.Fen;
+            }
+            else
+            {
+                _imageUploadError = "Could not recognize chess position in the image. Please try a clearer screenshot.";
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            _imageUploadError = $"Vision service unavailable: {ex.Message}";
+        }
+        catch (Exception ex)
+        {
+            _imageUploadError = $"Error processing image: {ex.Message}";
+        }
+        finally
+        {
+            _isProcessingImage = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ApplyRecognizedFen()
+    {
+        if (string.IsNullOrEmpty(_recognizedFen)) return;
+
+        var (isValid, error) = FenParser.Validate(_recognizedFen);
+        if (!isValid)
+        {
+            _imageUploadError = $"Invalid FEN: {error}";
+            return;
+        }
+
+        _currentFen = _recognizedFen;
+        _fenInput = _recognizedFen;
+        _showImageUpload = false;
+        _recognizedFen = null;
+        _boardKey++;
+
+        // Clear previous analysis
+        _evaluation = null;
+        _mateIn = null;
+        _bestMoveSan = "";
+        _coachArrows = null;
+        _threatArrows = null;
+        _moveHistory.Clear();
+        _currentMoveIndex = -1;
+
+        StateHasChanged();
+        await TryIdentifyOpening();
     }
 
     private async Task LoadFen()
     {
-        // Client-side validation first
         var (isValid, error) = FenParser.Validate(_fenInput);
         if (!isValid)
         {
-            _coachMessage = $"Invalid FEN: {error}";
-            StateHasChanged();
+            // Could show toast notification here
             return;
         }
 
         _currentFen = _fenInput;
-        _coachMessage = "Position loaded successfully. Click Analyze to evaluate.";
+        _boardKey++;
+        _evaluation = null;
+        _bestMoveSan = "";
         StateHasChanged();
 
         await TryIdentifyOpening();
     }
+
+    // =====================================================
+    // ANALYSIS
+    // =====================================================
 
     private async Task Analyze()
     {
@@ -235,14 +739,14 @@
 
         _isAnalyzing = true;
         _analysisDepth = 0;
-        _coachMessage = "Starting deep analysis with Stockfish...";
+        _coachArrows = null;
+        _threatArrows = null;
         StateHasChanged();
 
         try
         {
-            // Run both in parallel
-            var topMovesTask = ApiService.GetTopMovesAsync(_currentFen, 3, 20);
-            var bestMoveTask = ApiService.GetBestMoveAsync(_currentFen, 20);
+            var topMovesTask = ApiService.GetTopMovesAsync(_currentFen, 5, 25);
+            var bestMoveTask = ApiService.GetBestMoveAsync(_currentFen, 25);
             var openingTask = TryIdentifyOpening();
 
             await Task.WhenAll(topMovesTask, bestMoveTask, openingTask);
@@ -255,18 +759,84 @@
                 _evaluation = _bestMove.Evaluation;
                 _mateIn = _bestMove.MateIn;
                 _analysisDepth = _bestMove.Depth;
+                _bestMoveSan = _bestMove.BestMove ?? "";
             }
 
-            GenerateCoachMessage();
+            // Populate coach arrows (2nd and 3rd best moves)
+            if (_topMoves != null && _topMoves.Count > 1)
+            {
+                _coachArrows = new List<ArrowData>();
+                foreach (var move in _topMoves.Skip(1).Take(2))
+                {
+                    if (!string.IsNullOrEmpty(move.Move) && move.Move.Length >= 4)
+                    {
+                        _coachArrows.Add(new ArrowData
+                        {
+                            FromSquare = move.Move.Substring(0, 2),
+                            ToSquare = move.Move.Substring(2, 2),
+                            Type = ArrowType.Alternative
+                        });
+                    }
+                }
+            }
+
+            // Populate threat arrows by analyzing opponent's response
+            await PopulateThreatArrows();
         }
         catch (Exception ex)
         {
-            _coachMessage = $"Analysis failed: {ex.Message}. Make sure the API is running.";
+            Console.WriteLine($"Analysis error: {ex.Message}");
         }
         finally
         {
             _isAnalyzing = false;
             StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// Analyzes the position after the best move to find opponent's threats
+    /// </summary>
+    private async Task PopulateThreatArrows()
+    {
+        if (string.IsNullOrEmpty(_bestMoveSan) || _bestMoveSan.Length < 4) return;
+
+        try
+        {
+            // Get the position after applying the best move to find opponent's response
+            var position = FenParser.TryParse(_currentFen);
+            if (position == null) return;
+
+            // Apply best move to get resulting position
+            var from = _bestMoveSan.Substring(0, 2);
+            var to = _bestMoveSan.Substring(2, 2);
+            var piece = position.GetPieceAt(from);
+            if (piece == Piece.None) return;
+
+            position.SetPieceAt(from, Piece.None);
+            position.SetPieceAt(to, piece);
+            position.WhiteToMove = !position.WhiteToMove;
+
+            var newFen = FenParser.ToFen(position);
+
+            // Get opponent's best response (the threat)
+            var threatResponse = await ApiService.GetBestMoveAsync(newFen, 15);
+            if (threatResponse?.BestMove != null && threatResponse.BestMove.Length >= 4)
+            {
+                _threatArrows = new List<ArrowData>
+                {
+                    new ArrowData
+                    {
+                        FromSquare = threatResponse.BestMove.Substring(0, 2),
+                        ToSquare = threatResponse.BestMove.Substring(2, 2),
+                        Type = ArrowType.Threat
+                    }
+                };
+            }
+        }
+        catch
+        {
+            // Silently fail - threat analysis is optional
         }
     }
 
@@ -282,272 +852,157 @@
         }
     }
 
+    // =====================================================
+    // MOVE HANDLING
+    // =====================================================
+
     private async Task HandleMove(string move)
     {
-        // Parse current position and apply the move
         var position = FenParser.TryParse(_currentFen);
-        if (position == null)
-        {
-            _coachMessage = "Invalid position state.";
-            return;
-        }
+        if (position == null) return;
 
-        // Parse move (e.g., "e2e4")
-        if (move.Length < 4)
-        {
-            _coachMessage = $"Invalid move format: {move}";
-            return;
-        }
+        if (move.Length < 4) return;
 
         var fromSquare = move.Substring(0, 2);
         var toSquare = move.Substring(2, 2);
 
-        // Get the piece being moved
         var piece = position.GetPieceAt(fromSquare);
-        if (piece == Piece.None)
-        {
-            _coachMessage = $"No piece at {fromSquare}";
-            return;
-        }
+        if (piece == Piece.None) return;
 
-        // Apply the move
+        // Apply move (simplified)
         position.SetPieceAt(fromSquare, Piece.None);
         position.SetPieceAt(toSquare, piece);
-
-        // Handle castling
-        if (piece == Piece.WhiteKing && fromSquare == "e1")
-        {
-            if (toSquare == "g1") { position.SetPieceAt("h1", Piece.None); position.SetPieceAt("f1", Piece.WhiteRook); }
-            else if (toSquare == "c1") { position.SetPieceAt("a1", Piece.None); position.SetPieceAt("d1", Piece.WhiteRook); }
-            position.WhiteKingsideCastle = false;
-            position.WhiteQueensideCastle = false;
-        }
-        else if (piece == Piece.BlackKing && fromSquare == "e8")
-        {
-            if (toSquare == "g8") { position.SetPieceAt("h8", Piece.None); position.SetPieceAt("f8", Piece.BlackRook); }
-            else if (toSquare == "c8") { position.SetPieceAt("a8", Piece.None); position.SetPieceAt("d8", Piece.BlackRook); }
-            position.BlackKingsideCastle = false;
-            position.BlackQueensideCastle = false;
-        }
-
-        // Handle pawn promotion (default to queen)
-        if (piece == Piece.WhitePawn && toSquare[1] == '8')
-            position.SetPieceAt(toSquare, move.Length > 4 ? GetPromotionPiece(move[4], true) : Piece.WhiteQueen);
-        else if (piece == Piece.BlackPawn && toSquare[1] == '1')
-            position.SetPieceAt(toSquare, move.Length > 4 ? GetPromotionPiece(move[4], false) : Piece.BlackQueen);
-
-        // Handle en passant capture
-        if ((piece == Piece.WhitePawn || piece == Piece.BlackPawn) &&
-            position.EnPassantSquare == toSquare)
-        {
-            var capturedPawnRank = piece == Piece.WhitePawn ? '5' : '4';
-            position.SetPieceAt($"{toSquare[0]}{capturedPawnRank}", Piece.None);
-        }
-
-        // Update en passant square
-        if ((piece == Piece.WhitePawn && fromSquare[1] == '2' && toSquare[1] == '4') ||
-            (piece == Piece.BlackPawn && fromSquare[1] == '7' && toSquare[1] == '5'))
-        {
-            var epRank = piece == Piece.WhitePawn ? '3' : '6';
-            position.EnPassantSquare = $"{fromSquare[0]}{epRank}";
-        }
-        else
-        {
-            position.EnPassantSquare = null;
-        }
-
-        // Update castling rights if rook moved
-        if (fromSquare == "a1" || toSquare == "a1") position.WhiteQueensideCastle = false;
-        if (fromSquare == "h1" || toSquare == "h1") position.WhiteKingsideCastle = false;
-        if (fromSquare == "a8" || toSquare == "a8") position.BlackQueensideCastle = false;
-        if (fromSquare == "h8" || toSquare == "h8") position.BlackKingsideCastle = false;
-
-        // Toggle turn
         position.WhiteToMove = !position.WhiteToMove;
         if (!position.WhiteToMove) position.FullmoveNumber++;
 
-        // Update FEN
         _currentFen = FenParser.ToFen(position);
         _fenInput = _currentFen;
-        _coachMessage = $"Move played: {move}";
+        _lastMoveFrom = fromSquare;
+        _lastMoveTo = toSquare;
 
-        // Clear analysis on move
+        // Add to history
+        var san = GetSimpleSan(piece, fromSquare, toSquare);
+        _moveHistory.Add(new MoveRecord
+        {
+            Number = position.FullmoveNumber,
+            IsWhiteMove = position.WhiteToMove,
+            San = san,
+            Uci = move,
+            Fen = _currentFen
+        });
+        _currentMoveIndex = _moveHistory.Count - 1;
+
+        // Clear analysis
         _evaluation = null;
         _mateIn = null;
-        _bestMove = null;
-        _topMoves = null;
+        _bestMoveSan = "";
         _analysisDepth = 0;
 
         StateHasChanged();
+        await TryIdentifyOpening();
     }
 
-    private static Piece GetPromotionPiece(char promotion, bool isWhite) => promotion switch
+    private string GetSimpleSan(Piece piece, string from, string to)
     {
-        'q' or 'Q' => isWhite ? Piece.WhiteQueen : Piece.BlackQueen,
-        'r' or 'R' => isWhite ? Piece.WhiteRook : Piece.BlackRook,
-        'b' or 'B' => isWhite ? Piece.WhiteBishop : Piece.BlackBishop,
-        'n' or 'N' => isWhite ? Piece.WhiteKnight : Piece.BlackKnight,
-        _ => isWhite ? Piece.WhiteQueen : Piece.BlackQueen
-    };
-
-    private async Task HandleFileUpload(InputFileChangeEventArgs e)
-    {
-        var file = e.File;
-        _coachMessage = $"Processing {file.Name}...";
-        StateHasChanged();
-
-        try
+        var pieceChar = piece switch
         {
-            if (file.ContentType.StartsWith("image/"))
-            {
-                using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
-                var result = await ApiService.RecognizeBoardAsync(stream, file.Name);
-
-                if (result?.Fen != null)
-                {
-                    // Normalize the FEN - vision service might return incomplete FEN
-                    var fen = NormalizeFen(result.Fen);
-                    var (isValid, error) = FenParser.Validate(fen);
-
-                    if (!isValid)
-                    {
-                        _coachMessage = $"Invalid FEN from vision: {error}. Raw: {result.Fen}";
-                        return;
-                    }
-
-                    _currentFen = fen;
-                    _fenInput = fen;
-                    _boardKey++;
-                    _coachMessage = "Board recognized! Click Analyze to evaluate the position.";
-                    StateHasChanged();
-                    await TryIdentifyOpening();
-                }
-                else
-                {
-                    _coachMessage = "Could not recognize the chess board. Try a clearer image.";
-                }
-            }
-            else if (file.Name.EndsWith(".pgn", StringComparison.OrdinalIgnoreCase))
-            {
-                using var streamReader = new StreamReader(file.OpenReadStream());
-                var pgn = await streamReader.ReadToEndAsync();
-
-                _coachMessage = "Analyzing PGN game... This may take a moment.";
-                StateHasChanged();
-
-                var analysis = await ApiService.AnalyzePgnAsync(pgn);
-                if (analysis != null)
-                {
-                    _coachMessage = $"Game analyzed! White CPL: {analysis.WhiteAverageCentipawnLoss:F1}, Black CPL: {analysis.BlackAverageCentipawnLoss:F1}";
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            _coachMessage = $"Failed to process file: {ex.Message}";
-        }
-
-        StateHasChanged();
-    }
-
-    private void GenerateCoachMessage()
-    {
-        if (_evaluation == null && _mateIn == null)
-        {
-            _coachMessage = "Analysis complete.";
-            return;
-        }
-
-        if (_mateIn.HasValue)
-        {
-            _coachMessage = _mateIn > 0
-                ? $"Checkmate in {_mateIn}! White wins with perfect play."
-                : $"Checkmate in {Math.Abs(_mateIn.Value)}! Black wins with perfect play.";
-            return;
-        }
-
-        var eval = _evaluation ?? 0;
-        _coachMessage = eval switch
-        {
-            > 3 => "White has a decisive advantage. Look for tactical strikes!",
-            > 1.5 => "White has a clear advantage. Maintain pressure.",
-            > 0.5 => "White has a slight edge. Small improvements matter.",
-            > -0.5 => "Position is balanced. Both sides have chances.",
-            > -1.5 => "Black has a slight edge. Small improvements matter.",
-            > -3 => "Black has a clear advantage. Maintain pressure.",
-            _ => "Black has a decisive advantage. Look for tactical strikes!"
+            Piece.WhiteKing or Piece.BlackKing => "K",
+            Piece.WhiteQueen or Piece.BlackQueen => "Q",
+            Piece.WhiteRook or Piece.BlackRook => "R",
+            Piece.WhiteBishop or Piece.BlackBishop => "B",
+            Piece.WhiteKnight or Piece.BlackKnight => "N",
+            _ => ""
         };
+        return $"{pieceChar}{to}";
     }
+
+    private void PlayEngineLine(MoveAnalysis line)
+    {
+        if (!string.IsNullOrEmpty(line.Move) && line.Move.Length >= 4)
+        {
+            var from = line.Move.Substring(0, 2);
+            var to = line.Move.Substring(2, 2);
+            _ = HandleMove(line.Move);
+        }
+    }
+
+    // =====================================================
+    // NAVIGATION
+    // =====================================================
+
+    private void GoToMove(int index)
+    {
+        if (index >= 0 && index < _moveHistory.Count)
+        {
+            _currentMoveIndex = index;
+            _currentFen = _moveHistory[index].Fen;
+
+            if (index > 0)
+            {
+                var prevMove = _moveHistory[index];
+                _lastMoveFrom = prevMove.Uci?.Substring(0, 2);
+                _lastMoveTo = prevMove.Uci?.Substring(2, 2);
+                _lastMoveClassification = prevMove.Classification;
+            }
+            else
+            {
+                _lastMoveFrom = null;
+                _lastMoveTo = null;
+            }
+
+            _boardKey++;
+            _evaluation = null;
+            _bestMoveSan = "";
+            StateHasChanged();
+        }
+    }
+
+    private void GoToFirstMove() => GoToMove(0);
+    private void GoToPreviousMove() => GoToMove(_currentMoveIndex - 1);
+    private void GoToNextMove() => GoToMove(_currentMoveIndex + 1);
+    private void GoToLastMove() => GoToMove(_moveHistory.Count - 1);
+
+    private void ToggleAutoplay()
+    {
+        _isAutoplaying = !_isAutoplaying;
+        if (_isAutoplaying)
+        {
+            _ = RunAutoplay();
+        }
+    }
+
+    private async Task RunAutoplay()
+    {
+        while (_isAutoplaying && _currentMoveIndex < _moveHistory.Count - 1)
+        {
+            await Task.Delay(_autoplayDelayMs);
+            if (_isAutoplaying)
+            {
+                GoToNextMove();
+            }
+        }
+        _isAutoplaying = false;
+        StateHasChanged();
+    }
+
+    // =====================================================
+    // HELPERS
+    // =====================================================
 
     private string FormatEval(double? eval, int? mateIn)
     {
         if (mateIn.HasValue)
-            return mateIn > 0 ? $"M{mateIn}" : $"M{Math.Abs(mateIn.Value)}";
-
-        if (!eval.HasValue) return "0.00";
-
+            return mateIn > 0 ? $"+M{mateIn}" : $"-M{Math.Abs(mateIn.Value)}";
+        if (!eval.HasValue)
+            return "0.00";
         var sign = eval >= 0 ? "+" : "";
         return $"{sign}{eval:F2}";
     }
 
-    private int GetEvalBarWidth()
-    {
-        if (_mateIn.HasValue)
-            return _mateIn > 0 ? 100 : 0;
-
-        if (!_evaluation.HasValue) return 50;
-
-        // Convert eval to percentage (sigmoid-like)
-        var eval = Math.Clamp(_evaluation.Value, -5, 5);
-        return (int)(50 + eval * 10);
-    }
-
-    private string GetEvalClass()
-    {
-        if (_mateIn > 0 || _evaluation > 0.5) return "positive";
-        if (_mateIn < 0 || _evaluation < -0.5) return "negative";
-        return "neutral";
-    }
-
-    /// <summary>
-    /// Normalize FEN string - vision service might return incomplete FEN.
-    /// Ensures we have all 6 parts: position, color, castling, en-passant, halfmove, fullmove.
-    /// </summary>
-    private static string NormalizeFen(string fen)
-    {
-        if (string.IsNullOrWhiteSpace(fen)) return FenParser.StartingPosition;
-
-        var parts = fen.Trim().Split(' ');
-        if (parts.Length == 0) return FenParser.StartingPosition;
-
-        // Ensure we have all 6 parts
-        var normalized = new string[6];
-        normalized[0] = parts.Length > 0 ? parts[0] : "8/8/8/8/8/8/8/8";  // board
-        normalized[1] = parts.Length > 1 ? parts[1] : "w";                // side to move
-        normalized[2] = parts.Length > 2 ? parts[2] : "-";                // castling
-        normalized[3] = parts.Length > 3 ? parts[3] : "-";                // en passant
-        normalized[4] = parts.Length > 4 ? parts[4] : "0";                // halfmove clock
-        normalized[5] = parts.Length > 5 ? parts[5] : "1";                // fullmove number
-
-        return string.Join(" ", normalized);
-    }
-
-    private string GetCurrentTurn()
+    private int GetMaterialAdvantage(bool forWhite)
     {
         var position = FenParser.TryParse(_currentFen);
-        return position?.WhiteToMove == true ? "White" : "Black";
-    }
-
-    private string GetMoveNumber()
-    {
-        var position = FenParser.TryParse(_currentFen);
-        return position?.FullmoveNumber.ToString() ?? "1";
-    }
-
-    private string GetMaterialBalance()
-    {
-        var position = FenParser.TryParse(_currentFen);
-        if (position == null) return "=";
+        if (position == null) return 0;
 
         int whiteMaterial = 0;
         int blackMaterial = 0;
@@ -559,16 +1014,10 @@
                 var piece = position.Board[r, f];
                 var value = piece switch
                 {
-                    Piece.WhiteQueen => 9,
-                    Piece.WhiteRook => 5,
-                    Piece.WhiteBishop => 3,
-                    Piece.WhiteKnight => 3,
-                    Piece.WhitePawn => 1,
-                    Piece.BlackQueen => -9,
-                    Piece.BlackRook => -5,
-                    Piece.BlackBishop => -3,
-                    Piece.BlackKnight => -3,
-                    Piece.BlackPawn => -1,
+                    Piece.WhiteQueen => 9, Piece.WhiteRook => 5,
+                    Piece.WhiteBishop => 3, Piece.WhiteKnight => 3, Piece.WhitePawn => 1,
+                    Piece.BlackQueen => -9, Piece.BlackRook => -5,
+                    Piece.BlackBishop => -3, Piece.BlackKnight => -3, Piece.BlackPawn => -1,
                     _ => 0
                 };
                 if (value > 0) whiteMaterial += value;
@@ -576,16 +1025,216 @@
             }
         }
 
-        var diff = whiteMaterial - blackMaterial;
-        if (diff == 0) return "=";
-        return diff > 0 ? $"+{diff}" : diff.ToString();
+        return forWhite ? whiteMaterial - blackMaterial : blackMaterial - whiteMaterial;
     }
 
-    private string GetMaterialClass()
+    private string FormatTime(TimeSpan time)
     {
-        var balance = GetMaterialBalance();
-        if (balance.StartsWith("+")) return "positive";
-        if (balance.StartsWith("-")) return "negative";
-        return "neutral";
+        return time.TotalHours >= 1
+            ? $"{(int)time.TotalHours}:{time.Minutes:D2}:{time.Seconds:D2}"
+            : $"{time.Minutes}:{time.Seconds:D2}";
+    }
+
+    private bool IsTopPlayerActive()
+    {
+        var position = FenParser.TryParse(_currentFen);
+        if (position == null) return false;
+        return _flipBoard ? position.WhiteToMove : !position.WhiteToMove;
+    }
+
+    private bool IsBottomPlayerActive()
+    {
+        var position = FenParser.TryParse(_currentFen);
+        if (position == null) return false;
+        return _flipBoard ? !position.WhiteToMove : position.WhiteToMove;
+    }
+
+    private string GetClassificationClass(MoveClassification classification) => classification switch
+    {
+        MoveClassification.Brilliant => "brilliant",
+        MoveClassification.Great => "great",
+        MoveClassification.Best => "best",
+        MoveClassification.Inaccuracy => "inaccuracy",
+        MoveClassification.Mistake => "mistake",
+        MoveClassification.Blunder => "blunder",
+        _ => ""
+    };
+
+    // =====================================================
+    // OPENING EXPLORER
+    // =====================================================
+
+    private async Task LoadExplorerData()
+    {
+        if (_lastExploredFen == _currentFen) return;
+
+        _isLoadingExplorer = true;
+        _lastExploredFen = _currentFen;
+        StateHasChanged();
+
+        try
+        {
+            _explorerData = await ExplorerService.GetMastersDataAsync(_currentFen);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Explorer error: {ex.Message}");
+            _explorerData = null;
+        }
+        finally
+        {
+            _isLoadingExplorer = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task PlayExplorerMove(string uci)
+    {
+        if (string.IsNullOrEmpty(uci) || uci.Length < 4) return;
+        await HandleMove(uci);
+    }
+
+    // =====================================================
+    // CHESS CLOCK
+    // =====================================================
+
+    private void StartClock()
+    {
+        if (_clockRunning) return;
+
+        _clockRunning = true;
+        _lastTickTime = DateTime.UtcNow;
+        _clockTimer = new System.Threading.Timer(OnClockTick, null, 0, 100); // 100ms interval for smooth display
+    }
+
+    private void PauseClock()
+    {
+        _clockRunning = false;
+        _clockTimer?.Dispose();
+        _clockTimer = null;
+    }
+
+    private void ResetClocks()
+    {
+        PauseClock();
+        _whiteTime = TimeSpan.FromMinutes(10);
+        _blackTime = TimeSpan.FromMinutes(10);
+    }
+
+    private void OnClockTick(object? state)
+    {
+        if (!_clockRunning) return;
+
+        var now = DateTime.UtcNow;
+        var elapsed = now - _lastTickTime;
+        _lastTickTime = now;
+
+        var position = FenParser.TryParse(_currentFen);
+        if (position == null) return;
+
+        if (position.WhiteToMove)
+        {
+            _whiteTime -= elapsed;
+            if (_whiteTime < TimeSpan.Zero) _whiteTime = TimeSpan.Zero;
+        }
+        else
+        {
+            _blackTime -= elapsed;
+            if (_blackTime < TimeSpan.Zero) _blackTime = TimeSpan.Zero;
+        }
+
+        // Flag time (for future: handle game loss on time)
+        if (_whiteTime <= TimeSpan.Zero || _blackTime <= TimeSpan.Zero)
+        {
+            PauseClock();
+        }
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    // =====================================================
+    // COACH MOVE EXPLANATION
+    // =====================================================
+
+    private async Task GenerateCoachExplanation(double? evalBefore, double? evalAfter, string playerMove, string bestMove)
+    {
+        _coachExplanation = null;
+
+        if (!evalBefore.HasValue || !evalAfter.HasValue) return;
+
+        var evalDrop = evalBefore.Value - evalAfter.Value;
+        var isWhiteMove = !FenParser.TryParse(_currentFen)?.WhiteToMove ?? true;
+
+        // Adjust for black's perspective
+        if (!isWhiteMove) evalDrop = -evalDrop;
+
+        // Classify the move
+        if (evalDrop >= 3.0)
+        {
+            _lastMoveEvalClassification = MoveClassification.Blunder;
+            _coachExplanation = $"This was a blunder! You lost {evalDrop:F1} pawns worth of advantage. The best move was {bestMove}.";
+        }
+        else if (evalDrop >= 1.5)
+        {
+            _lastMoveEvalClassification = MoveClassification.Mistake;
+            _coachExplanation = $"This was a mistake. You gave away {evalDrop:F1} pawns. Consider {bestMove} instead.";
+        }
+        else if (evalDrop >= 0.5)
+        {
+            _lastMoveEvalClassification = MoveClassification.Inaccuracy;
+            _coachExplanation = $"This move is slightly inaccurate. {bestMove} was more precise.";
+        }
+        else if (playerMove == bestMove)
+        {
+            _lastMoveEvalClassification = MoveClassification.Best;
+            _coachExplanation = "Excellent! This is the best move in the position.";
+        }
+        else
+        {
+            _lastMoveEvalClassification = MoveClassification.Good;
+            _coachExplanation = "This is a reasonable move. The computer suggests " + bestMove + " as slightly better.";
+        }
+
+        // Update the last move in history with classification
+        if (_currentMoveIndex >= 0 && _currentMoveIndex < _moveHistory.Count)
+        {
+            _moveHistory[_currentMoveIndex].Classification = _lastMoveEvalClassification;
+            _moveHistory[_currentMoveIndex].Evaluation = evalAfter;
+        }
+    }
+
+    private string GetCoachClassificationText(MoveClassification classification) => classification switch
+    {
+        MoveClassification.Brilliant => "Brilliant Move!",
+        MoveClassification.Great => "Great Move!",
+        MoveClassification.Best => "Best Move",
+        MoveClassification.Good => "Good Move",
+        MoveClassification.Inaccuracy => "Inaccuracy",
+        MoveClassification.Mistake => "Mistake",
+        MoveClassification.Blunder => "Blunder",
+        _ => ""
+    };
+
+    // =====================================================
+    // TAB CHANGE HANDLER
+    // =====================================================
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Load explorer data when switching to explore tab
+        if (_activeTab == "explore" && _lastExploredFen != _currentFen)
+        {
+            await LoadExplorerData();
+        }
+    }
+
+    // =====================================================
+    // DISPOSE
+    // =====================================================
+
+    public void Dispose()
+    {
+        PauseClock();
+        _clockTimer?.Dispose();
     }
 }

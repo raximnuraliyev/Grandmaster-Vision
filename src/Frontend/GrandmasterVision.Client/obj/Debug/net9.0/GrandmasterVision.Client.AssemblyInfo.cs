@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("GrandmasterVision.Client")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+42969f458c6d31478beef7d3e263b5f9f28832bd")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+006289f966cd0bedb61b91bfb61ed195331eed0f")]
 [assembly: System.Reflection.AssemblyProductAttribute("GrandmasterVision.Client")]
 [assembly: System.Reflection.AssemblyTitleAttribute("GrandmasterVision.Client")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

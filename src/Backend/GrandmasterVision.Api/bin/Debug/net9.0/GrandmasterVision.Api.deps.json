@@ -1,0 +1,125 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v9.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v9.0": {
+      "GrandmasterVision.Api/1.0.0": {
+        "dependencies": {
+          "GrandmasterVision.Core": "1.0.0",
+          "Microsoft.AspNetCore.OpenApi": "9.0.3"
+        },
+        "runtime": {
+          "GrandmasterVision.Api.dll": {}
+        }
+      },
+      "Microsoft.AspNetCore.OpenApi/9.0.3": {
+        "dependencies": {
+          "Microsoft.OpenApi": "1.6.17"
+        },
+        "runtime": {
+          "lib/net9.0/Microsoft.AspNetCore.OpenApi.dll": {
+            "assemblyVersion": "9.0.3.0",
+            "fileVersion": "9.0.325.11220"
+          }
+        }
+      },
+      "Microsoft.OpenApi/1.6.17": {
+        "runtime": {
+          "lib/netstandard2.0/Microsoft.OpenApi.dll": {
+            "assemblyVersion": "1.6.17.0",
+            "fileVersion": "1.6.17.0"
+          }
+        }
+      },
+      "pgn.net/1.2.1": {
+        "runtime": {
+          "lib/net45/pgn.net.dll": {
+            "assemblyVersion": "1.2.1.0",
+            "fileVersion": "1.2.1.0"
+          }
+        }
+      },
+      "Rudzoft.ChessLib/0.0.3": {
+        "dependencies": {
+          "ZString": "2.4.4"
+        },
+        "runtime": {
+          "lib/net6.0/Rudzoft.ChessLib.dll": {
+            "assemblyVersion": "0.0.3.0",
+            "fileVersion": "0.0.3.0"
+          }
+        }
+      },
+      "ZString/2.4.4": {
+        "runtime": {
+          "lib/netstandard2.1/ZString.dll": {
+            "assemblyVersion": "2.4.4.0",
+            "fileVersion": "2.4.4.0"
+          }
+        }
+      },
+      "GrandmasterVision.Core/1.0.0": {
+        "dependencies": {
+          "Rudzoft.ChessLib": "0.0.3",
+          "pgn.net": "1.2.1"
+        },
+        "runtime": {
+          "GrandmasterVision.Core.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "GrandmasterVision.Api/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Microsoft.AspNetCore.OpenApi/9.0.3": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-fKh0UyGMUE+lhbovMhh3g88b9bT+y2jfZIuJ8ljY7rcCaSJ9m2Qqqbh66oULFfzWE2BUAmimzTGcPcq3jXi/Ew==",
+      "path": "microsoft.aspnetcore.openapi/9.0.3",
+      "hashPath": "microsoft.aspnetcore.openapi.9.0.3.nupkg.sha512"
+    },
+    "Microsoft.OpenApi/1.6.17": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-Le+kehlmrlQfuDFUt1zZ2dVwrhFQtKREdKBo+rexOwaCoYP0/qpgT9tLxCsZjsgR5Itk1UKPcbgO+FyaNid/bA==",
+      "path": "microsoft.openapi/1.6.17",
+      "hashPath": "microsoft.openapi.1.6.17.nupkg.sha512"
+    },
+    "pgn.net/1.2.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-RnEspVYQiA/ieV0Ri2EcbULV5Z82vfqg3Pi0Zv+gmAvN0BPlzpBgNucKmSOzxZox0VYIkKAqB0nieEHSgXw27A==",
+      "path": "pgn.net/1.2.1",
+      "hashPath": "pgn.net.1.2.1.nupkg.sha512"
+    },
+    "Rudzoft.ChessLib/0.0.3": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-snE69yX7ChDJSNAEJjxL0t7sUDggFkCsy1ZdORbkuA5gAPtgBtw1kC7l/DBPRCurWSfOYEJkKxh+Kd6pV7U9cA==",
+      "path": "rudzoft.chesslib/0.0.3",
+      "hashPath": "rudzoft.chesslib.0.0.3.nupkg.sha512"
+    },
+    "ZString/2.4.4": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-3ETG/AE0wR+Uo1CPwzSIYLMvDak5i8stKR/DdxOTyj8EKD9bKPTbftv/YhMbbjfR04gA2xK0PX3mPj7BRGDlew==",
+      "path": "zstring/2.4.4",
+      "hashPath": "zstring.2.4.4.nupkg.sha512"
+    },
+    "GrandmasterVision.Core/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

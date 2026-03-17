@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("GrandmasterVision.Api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+42969f458c6d31478beef7d3e263b5f9f28832bd")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+eec85fc2571b95482fbe70c74d32ef0fec60b52e")]
 [assembly: System.Reflection.AssemblyProductAttribute("GrandmasterVision.Api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("GrandmasterVision.Api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -16,4 +16,16 @@ builder.Services.AddScoped(sp => new HttpClient
 // Register services
 builder.Services.AddScoped<ChessApiService>();
 
+// Lichess Explorer Service (external API)
+builder.Services.AddScoped<LichessExplorerService>(sp =>
+{
+    var httpClient = new HttpClient();
+    httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
+    var logger = sp.GetRequiredService<ILogger<LichessExplorerService>>();
+    return new LichessExplorerService(httpClient, logger);
+});
+
+// Add logging
+builder.Logging.SetMinimumLevel(LogLevel.Warning);
+
 await builder.Build().RunAsync();

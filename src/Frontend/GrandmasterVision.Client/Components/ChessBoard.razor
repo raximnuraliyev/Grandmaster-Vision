@@ -18,7 +18,7 @@
                      @onclick="() => OnSquareClick(square)">
                     @if (piece != Piece.None)
                     {
-                        <span class="@GetPieceClass(piece)">@GetPieceSymbol(piece)</span>
+                        <img class="piece" src="images/pieces/@(GetPieceCode(piece)).svg" alt="@piece" draggable="false" />
                     }
                 </div>
             }
@@ -70,28 +70,22 @@
         return $"{(char)('a' + f)}{8 - r}";
     }
 
-    private string GetPieceSymbol(Piece piece) => piece switch
+    private string GetPieceCode(Piece piece) => piece switch
     {
-        Piece.WhiteKing => "♔",
-        Piece.WhiteQueen => "♕",
-        Piece.WhiteRook => "♖",
-        Piece.WhiteBishop => "♗",
-        Piece.WhiteKnight => "♘",
-        Piece.WhitePawn => "♙",
-        Piece.BlackKing => "♚",
-        Piece.BlackQueen => "♛",
-        Piece.BlackRook => "♜",
-        Piece.BlackBishop => "♝",
-        Piece.BlackKnight => "♞",
-        Piece.BlackPawn => "♟",
+        Piece.WhiteKing => "wK",
+        Piece.WhiteQueen => "wQ",
+        Piece.WhiteRook => "wR",
+        Piece.WhiteBishop => "wB",
+        Piece.WhiteKnight => "wN",
+        Piece.WhitePawn => "wP",
+        Piece.BlackKing => "bK",
+        Piece.BlackQueen => "bQ",
+        Piece.BlackRook => "bR",
+        Piece.BlackBishop => "bB",
+        Piece.BlackKnight => "bN",
+        Piece.BlackPawn => "bP",
         _ => ""
     };
-
-    private string GetPieceClass(Piece piece)
-    {
-        var isWhite = piece >= Piece.WhiteKing && piece <= Piece.WhitePawn;
-        return isWhite ? "piece white-piece" : "piece black-piece";
-    }
 
     private void OnSquareClick(string square)
     {

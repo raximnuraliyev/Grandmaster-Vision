@@ -108,7 +108,7 @@
             </div>
             <div class="card-body">
                 <div class="input-group">
-                    <input type="text" class="input" @bind="_currentFen" @bind:event="oninput" placeholder="Enter FEN notation..." />
+                    <input type="text" class="input" @bind="_fenInput" placeholder="Enter FEN notation..." />
                     <button class="btn btn-secondary" @onclick="LoadFen">Load</button>
                 </div>
             </div>
@@ -122,7 +122,17 @@
             <div class="card-body">
                 <div class="upload-zone">
                     <InputFile OnChange="HandleFileUpload" accept="image/*,.pgn" />
-                    <div class="upload-icon">♜</div>
+                    <div class="upload-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45" width="48" height="48">
+                            <g fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M9 39h27v-3H9v3zm3-3v-4h21v4H12zm-1-22V9h4v2h5V9h5v2h5V9h4v5" fill="currentColor"/>
+                                <path d="M34 14l-3 3H14l-3-3"/>
+                                <path d="M31 17v12.5H14V17"/>
+                                <path d="M31 29.5l1.5 2.5h-20l1.5-2.5"/>
+                                <path d="M11 14h23"/>
+                            </g>
+                        </svg>
+                    </div>
                     <div class="upload-text">Drop image or PGN file</div>
                     <div class="upload-hint">Supports PNG, JPG, and PGN files</div>
                 </div>
@@ -155,6 +165,7 @@
 
 @code {
     private string _currentFen = FenParser.StartingPosition;
+    private string _fenInput = FenParser.StartingPosition;
     private bool _flipBoard = false;
     private bool _isAnalyzing = false;
     private int _analysisDepth = 0;
@@ -176,6 +187,7 @@
     private void ResetBoard()
     {
         _currentFen = FenParser.StartingPosition;
+        _fenInput = FenParser.StartingPosition;
         _evaluation = null;
         _mateIn = null;
         _bestMove = null;
@@ -188,25 +200,20 @@
 
     private async Task LoadFen()
     {
-        try
+        // Client-side validation first
+        var (isValid, error) = FenParser.Validate(_fenInput);
+        if (!isValid)
         {
-            var result = await ApiService.ValidateFenAsync(_currentFen);
-            if (result?.IsValid == true)
-            {
-                _coachMessage = "Position loaded successfully. Click Analyze to evaluate.";
-                await TryIdentifyOpening();
-            }
-            else
-            {
-                _coachMessage = $"Invalid FEN: {result?.Error ?? "Unknown format"}";
-            }
+            _coachMessage = $"Invalid FEN: {error}";
             StateHasChanged();
+            return;
         }
-        catch (Exception ex)
-        {
-            _coachMessage = $"Error: {ex.Message}";
-            StateHasChanged();
-        }
+
+        _currentFen = _fenInput;
+        _coachMessage = "Position loaded successfully. Click Analyze to evaluate.";
+        StateHasChanged();
+
+        await TryIdentifyOpening();
     }
 
     private async Task Analyze()
@@ -284,6 +291,7 @@
                 if (result?.Fen != null)
                 {
                     _currentFen = result.Fen;
+                    _fenInput = result.Fen;
                     _coachMessage = "Board recognized! Click Analyze to evaluate the position.";
                     await TryIdentifyOpening();
                 }

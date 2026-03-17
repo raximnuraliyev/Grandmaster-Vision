@@ -1,0 +1,13 @@
+D:\Chess\GrandmasterVision\src\GrandmasterVision.Core\bin\Debug\net9.0\GrandmasterVision.Core.deps.json
+D:\Chess\GrandmasterVision\src\GrandmasterVision.Core\bin\Debug\net9.0\GrandmasterVision.Core.dll
+D:\Chess\GrandmasterVision\src\GrandmasterVision.Core\bin\Debug\net9.0\GrandmasterVision.Core.pdb
+D:\Chess\GrandmasterVision\src\GrandmasterVision.Core\obj\Debug\net9.0\GrandmasterVision.Core.csproj.AssemblyReference.cache
+D:\Chess\GrandmasterVision\src\GrandmasterVision.Core\obj\Debug\net9.0\GrandmasterVision.Core.GeneratedMSBuildEditorConfig.editorconfig
+D:\Chess\GrandmasterVision\src\GrandmasterVision.Core\obj\Debug\net9.0\GrandmasterVision.Core.AssemblyInfoInputs.cache
+D:\Chess\GrandmasterVision\src\GrandmasterVision.Core\obj\Debug\net9.0\GrandmasterVision.Core.AssemblyInfo.cs
+D:\Chess\GrandmasterVision\src\GrandmasterVision.Core\obj\Debug\net9.0\GrandmasterVision.Core.csproj.CoreCompileInputs.cache
+D:\Chess\GrandmasterVision\src\GrandmasterVision.Core\obj\Debug\net9.0\GrandmasterVision.Core.sourcelink.json
+D:\Chess\GrandmasterVision\src\GrandmasterVision.Core\obj\Debug\net9.0\GrandmasterVision.Core.dll
+D:\Chess\GrandmasterVision\src\GrandmasterVision.Core\obj\Debug\net9.0\refint\GrandmasterVision.Core.dll
+D:\Chess\GrandmasterVision\src\GrandmasterVision.Core\obj\Debug\net9.0\GrandmasterVision.Core.pdb
+D:\Chess\GrandmasterVision\src\GrandmasterVision.Core\obj\Debug\net9.0\ref\GrandmasterVision.Core.dll

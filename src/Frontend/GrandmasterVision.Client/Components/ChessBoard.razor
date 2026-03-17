@@ -1,6 +1,6 @@
 @using GrandmasterVision.Core.Services
 
-<div class="chess-board-wrapper">
+<div class="chess-board-container">
     <div class="chess-board">
         @for (int rank = 0; rank < 8; rank++)
         {
@@ -13,9 +13,23 @@
                 var isLight = (r + f) % 2 == 0;
                 var isSelected = square == _selectedSquare;
                 var isLastMove = square == _lastMoveFrom || square == _lastMoveTo;
+                var showRankLabel = file == 0;
+                var showFileLabel = rank == 7;
+                var displayRank = FlipBoard ? (r + 1) : (8 - r);
+                var displayFile = FlipBoard ? (char)('h' - f) : (char)('a' + f);
 
-                <div class="square @(isLight ? "light" : "dark") @(isSelected ? "selected" : "") @(isLastMove ? "highlight" : "")"
+                <div class="square @(isLight ? "light" : "dark") @(isSelected ? "selected" : "") @(isLastMove ? "last-move" : "")"
                      @onclick="() => OnSquareClick(square)">
+
+                    @if (showRankLabel)
+                    {
+                        <span class="coord rank @(isLight ? "dark-text" : "light-text")">@displayRank</span>
+                    }
+                    @if (showFileLabel)
+                    {
+                        <span class="coord file @(isLight ? "dark-text" : "light-text")">@displayFile</span>
+                    }
+
                     @if (piece != Piece.None)
                     {
                         <img class="piece" src="images/pieces/@(GetPieceCode(piece)).svg" alt="@piece" draggable="false" />
@@ -24,6 +38,15 @@
             }
         }
     </div>
+
+    @if (Evaluation.HasValue || MateIn.HasValue)
+    {
+        <div class="eval-bar-vertical">
+            <div class="eval-white" style="height: @GetEvalHeight()%"></div>
+            <div class="eval-black"></div>
+            <span class="eval-label">@FormatEval()</span>
+        </div>
+    }
 </div>
 
 @code {
@@ -133,5 +156,23 @@
         _selectedSquare = null;
 
         await OnMove.InvokeAsync(move);
+    }
+
+    private string FormatEval()
+    {
+        if (MateIn.HasValue)
+            return MateIn > 0 ? $"M{MateIn}" : $"M{Math.Abs(MateIn.Value)}";
+        if (!Evaluation.HasValue) return "0.0";
+        var sign = Evaluation >= 0 ? "+" : "";
+        return $"{sign}{Evaluation:F1}";
+    }
+
+    private int GetEvalHeight()
+    {
+        if (MateIn.HasValue)
+            return MateIn > 0 ? 100 : 0;
+        if (!Evaluation.HasValue) return 50;
+        var eval = Math.Clamp(Evaluation.Value, -10, 10);
+        return (int)(50 + eval * 5);
     }
 }

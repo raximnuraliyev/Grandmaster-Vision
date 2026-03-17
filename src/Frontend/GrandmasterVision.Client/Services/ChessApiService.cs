@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Text.Json;
 using GrandmasterVision.Core.Services;
 
 namespace GrandmasterVision.Client.Services;
@@ -31,7 +32,8 @@ public class ChessApiService
             return await response.Content.ReadFromJsonAsync<BestMoveResponse>();
         }
 
-        return null;
+        var errorContent = await response.Content.ReadAsStringAsync();
+        throw new HttpRequestException($"API error ({response.StatusCode}): {GetErrorMessage(errorContent)}");
     }
 
     /// <summary>
@@ -51,7 +53,8 @@ public class ChessApiService
             return await response.Content.ReadFromJsonAsync<List<MoveAnalysis>>();
         }
 
-        return null;
+        var errorContent = await response.Content.ReadAsStringAsync();
+        throw new HttpRequestException($"API error ({response.StatusCode}): {GetErrorMessage(errorContent)}");
     }
 
     /// <summary>
@@ -70,7 +73,8 @@ public class ChessApiService
             return await response.Content.ReadFromJsonAsync<GameAnalysis>();
         }
 
-        return null;
+        var errorContent = await response.Content.ReadAsStringAsync();
+        throw new HttpRequestException($"API error ({response.StatusCode}): {GetErrorMessage(errorContent)}");
     }
 
     /// <summary>
@@ -89,7 +93,8 @@ public class ChessApiService
             return await response.Content.ReadFromJsonAsync<RecognitionResult>();
         }
 
-        return null;
+        var errorContent = await response.Content.ReadAsStringAsync();
+        throw new HttpRequestException($"Vision API error ({response.StatusCode}): {GetErrorMessage(errorContent)}");
     }
 
     /// <summary>
@@ -126,6 +131,20 @@ public class ChessApiService
         }
 
         return null;
+    }
+
+    private static string GetErrorMessage(string json)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            if (doc.RootElement.TryGetProperty("error", out var error))
+            {
+                return error.GetString() ?? json;
+            }
+        }
+        catch { }
+        return json;
     }
 }
 

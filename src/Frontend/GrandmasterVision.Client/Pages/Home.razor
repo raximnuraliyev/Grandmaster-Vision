@@ -8,25 +8,46 @@
 
 <div class="analysis-grid">
     <div class="board-section">
-        <ChessBoard Fen="@_currentFen"
+        <ChessBoard @key="_boardKey"
+                    Fen="@_currentFen"
                     Evaluation="@_evaluation"
                     MateIn="@_mateIn"
                     OnMove="HandleMove"
                     FlipBoard="@_flipBoard" />
 
         <div class="board-controls">
-            <button class="btn btn-secondary" @onclick="FlipBoard">Flip</button>
-            <button class="btn btn-secondary" @onclick="ResetBoard">Reset</button>
+            <button class="btn btn-secondary" @onclick="FlipBoard">
+                ⟲ Flip
+            </button>
+            <button class="btn btn-secondary" @onclick="ResetBoard">
+                ↺ Reset
+            </button>
             <button class="btn btn-primary" @onclick="Analyze" disabled="@_isAnalyzing">
                 @if (_isAnalyzing)
                 {
-                    <span>Analyzing...</span>
+                    <span>⏳ Analyzing...</span>
                 }
                 else
                 {
-                    <span>Analyze Position</span>
+                    <span>⚡ Analyze</span>
                 }
             </button>
+        </div>
+
+        <!-- Position Stats -->
+        <div class="position-stats">
+            <div class="stat">
+                <span class="stat-label">Turn</span>
+                <span class="stat-value">@(GetCurrentTurn())</span>
+            </div>
+            <div class="stat">
+                <span class="stat-label">Material</span>
+                <span class="stat-value @GetMaterialClass()">@GetMaterialBalance()</span>
+            </div>
+            <div class="stat">
+                <span class="stat-label">Move</span>
+                <span class="stat-value">@GetMoveNumber()</span>
+            </div>
         </div>
     </div>
 
@@ -77,7 +98,7 @@
         {
             <div class="card">
                 <div class="card-header">
-                    <span class="card-title"><span class="icon icon-pv"></span> Principal Variation</span>
+                    <span class="card-title"><span class="icon icon-pv"></span> Best Line</span>
                 </div>
                 <div class="card-body">
                     <div class="pv-line">@_bestMove.PrincipalVariation</div>
@@ -104,11 +125,11 @@
         <!-- FEN Input -->
         <div class="card">
             <div class="card-header">
-                <span class="card-title"><span class="icon icon-fen"></span> Position</span>
+                <span class="card-title"><span class="icon icon-fen"></span> Position (FEN)</span>
             </div>
             <div class="card-body">
                 <div class="input-group">
-                    <input type="text" class="input" @bind="_fenInput" placeholder="Enter FEN notation..." />
+                    <input type="text" class="input" @bind="_fenInput" placeholder="Paste FEN notation..." />
                     <button class="btn btn-secondary" @onclick="LoadFen">Load</button>
                 </div>
             </div>
@@ -117,24 +138,14 @@
         <!-- File Upload -->
         <div class="card">
             <div class="card-header">
-                <span class="card-title"><span class="icon icon-upload"></span> Import</span>
+                <span class="card-title"><span class="icon icon-upload"></span> Import Board</span>
             </div>
             <div class="card-body">
                 <div class="upload-zone">
                     <InputFile OnChange="HandleFileUpload" accept="image/*,.pgn" />
-                    <div class="upload-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45" width="48" height="48">
-                            <g fill="none" stroke="currentColor" stroke-width="1.5">
-                                <path d="M9 39h27v-3H9v3zm3-3v-4h21v4H12zm-1-22V9h4v2h5V9h5v2h5V9h4v5" fill="currentColor"/>
-                                <path d="M34 14l-3 3H14l-3-3"/>
-                                <path d="M31 17v12.5H14V17"/>
-                                <path d="M31 29.5l1.5 2.5h-20l1.5-2.5"/>
-                                <path d="M11 14h23"/>
-                            </g>
-                        </svg>
-                    </div>
-                    <div class="upload-text">Drop image or PGN file</div>
-                    <div class="upload-hint">Supports PNG, JPG, and PGN files</div>
+                    <div class="upload-icon">📷</div>
+                    <div class="upload-text">Drop screenshot or PGN</div>
+                    <div class="upload-hint">PNG, JPG, or PGN files</div>
                 </div>
             </div>
         </div>
@@ -144,7 +155,7 @@
         {
             <div class="card coach-card">
                 <div class="card-header">
-                    <span class="card-title"><span class="icon icon-coach"></span> AI Coach</span>
+                    <span class="card-title"><span class="icon icon-coach"></span> Coach</span>
                 </div>
                 <div class="card-body">
                     <p class="coach-message">@_coachMessage</p>
@@ -157,7 +168,7 @@
         {
             <div class="analyzing-state">
                 <div class="spinner"></div>
-                <span class="analyzing-text">Stockfish is thinking... Depth @_analysisDepth</span>
+                <span class="analyzing-text">Stockfish analyzing... Depth @_analysisDepth</span>
             </div>
         }
     </div>
@@ -169,6 +180,7 @@
     private bool _flipBoard = false;
     private bool _isAnalyzing = false;
     private int _analysisDepth = 0;
+    private int _boardKey = 0;
 
     private double? _evaluation;
     private int? _mateIn;
@@ -194,6 +206,7 @@
         _topMoves = null;
         _opening = null;
         _analysisDepth = 0;
+        _boardKey++; // Force ChessBoard component to re-create
         _coachMessage = "Board reset to starting position.";
         StateHasChanged();
     }
@@ -271,9 +284,111 @@
 
     private async Task HandleMove(string move)
     {
+        // Parse current position and apply the move
+        var position = FenParser.TryParse(_currentFen);
+        if (position == null)
+        {
+            _coachMessage = "Invalid position state.";
+            return;
+        }
+
+        // Parse move (e.g., "e2e4")
+        if (move.Length < 4)
+        {
+            _coachMessage = $"Invalid move format: {move}";
+            return;
+        }
+
+        var fromSquare = move.Substring(0, 2);
+        var toSquare = move.Substring(2, 2);
+
+        // Get the piece being moved
+        var piece = position.GetPieceAt(fromSquare);
+        if (piece == Piece.None)
+        {
+            _coachMessage = $"No piece at {fromSquare}";
+            return;
+        }
+
+        // Apply the move
+        position.SetPieceAt(fromSquare, Piece.None);
+        position.SetPieceAt(toSquare, piece);
+
+        // Handle castling
+        if (piece == Piece.WhiteKing && fromSquare == "e1")
+        {
+            if (toSquare == "g1") { position.SetPieceAt("h1", Piece.None); position.SetPieceAt("f1", Piece.WhiteRook); }
+            else if (toSquare == "c1") { position.SetPieceAt("a1", Piece.None); position.SetPieceAt("d1", Piece.WhiteRook); }
+            position.WhiteKingsideCastle = false;
+            position.WhiteQueensideCastle = false;
+        }
+        else if (piece == Piece.BlackKing && fromSquare == "e8")
+        {
+            if (toSquare == "g8") { position.SetPieceAt("h8", Piece.None); position.SetPieceAt("f8", Piece.BlackRook); }
+            else if (toSquare == "c8") { position.SetPieceAt("a8", Piece.None); position.SetPieceAt("d8", Piece.BlackRook); }
+            position.BlackKingsideCastle = false;
+            position.BlackQueensideCastle = false;
+        }
+
+        // Handle pawn promotion (default to queen)
+        if (piece == Piece.WhitePawn && toSquare[1] == '8')
+            position.SetPieceAt(toSquare, move.Length > 4 ? GetPromotionPiece(move[4], true) : Piece.WhiteQueen);
+        else if (piece == Piece.BlackPawn && toSquare[1] == '1')
+            position.SetPieceAt(toSquare, move.Length > 4 ? GetPromotionPiece(move[4], false) : Piece.BlackQueen);
+
+        // Handle en passant capture
+        if ((piece == Piece.WhitePawn || piece == Piece.BlackPawn) &&
+            position.EnPassantSquare == toSquare)
+        {
+            var capturedPawnRank = piece == Piece.WhitePawn ? '5' : '4';
+            position.SetPieceAt($"{toSquare[0]}{capturedPawnRank}", Piece.None);
+        }
+
+        // Update en passant square
+        if ((piece == Piece.WhitePawn && fromSquare[1] == '2' && toSquare[1] == '4') ||
+            (piece == Piece.BlackPawn && fromSquare[1] == '7' && toSquare[1] == '5'))
+        {
+            var epRank = piece == Piece.WhitePawn ? '3' : '6';
+            position.EnPassantSquare = $"{fromSquare[0]}{epRank}";
+        }
+        else
+        {
+            position.EnPassantSquare = null;
+        }
+
+        // Update castling rights if rook moved
+        if (fromSquare == "a1" || toSquare == "a1") position.WhiteQueensideCastle = false;
+        if (fromSquare == "h1" || toSquare == "h1") position.WhiteKingsideCastle = false;
+        if (fromSquare == "a8" || toSquare == "a8") position.BlackQueensideCastle = false;
+        if (fromSquare == "h8" || toSquare == "h8") position.BlackKingsideCastle = false;
+
+        // Toggle turn
+        position.WhiteToMove = !position.WhiteToMove;
+        if (!position.WhiteToMove) position.FullmoveNumber++;
+
+        // Update FEN
+        _currentFen = FenParser.ToFen(position);
+        _fenInput = _currentFen;
         _coachMessage = $"Move played: {move}";
+
+        // Clear analysis on move
+        _evaluation = null;
+        _mateIn = null;
+        _bestMove = null;
+        _topMoves = null;
+        _analysisDepth = 0;
+
         StateHasChanged();
     }
+
+    private static Piece GetPromotionPiece(char promotion, bool isWhite) => promotion switch
+    {
+        'q' or 'Q' => isWhite ? Piece.WhiteQueen : Piece.BlackQueen,
+        'r' or 'R' => isWhite ? Piece.WhiteRook : Piece.BlackRook,
+        'b' or 'B' => isWhite ? Piece.WhiteBishop : Piece.BlackBishop,
+        'n' or 'N' => isWhite ? Piece.WhiteKnight : Piece.BlackKnight,
+        _ => isWhite ? Piece.WhiteQueen : Piece.BlackQueen
+    };
 
     private async Task HandleFileUpload(InputFileChangeEventArgs e)
     {
@@ -290,9 +405,21 @@
 
                 if (result?.Fen != null)
                 {
-                    _currentFen = result.Fen;
-                    _fenInput = result.Fen;
+                    // Normalize the FEN - vision service might return incomplete FEN
+                    var fen = NormalizeFen(result.Fen);
+                    var (isValid, error) = FenParser.Validate(fen);
+
+                    if (!isValid)
+                    {
+                        _coachMessage = $"Invalid FEN from vision: {error}. Raw: {result.Fen}";
+                        return;
+                    }
+
+                    _currentFen = fen;
+                    _fenInput = fen;
+                    _boardKey++;
                     _coachMessage = "Board recognized! Click Analyze to evaluate the position.";
+                    StateHasChanged();
                     await TryIdentifyOpening();
                 }
                 else
@@ -379,6 +506,86 @@
     {
         if (_mateIn > 0 || _evaluation > 0.5) return "positive";
         if (_mateIn < 0 || _evaluation < -0.5) return "negative";
+        return "neutral";
+    }
+
+    /// <summary>
+    /// Normalize FEN string - vision service might return incomplete FEN.
+    /// Ensures we have all 6 parts: position, color, castling, en-passant, halfmove, fullmove.
+    /// </summary>
+    private static string NormalizeFen(string fen)
+    {
+        if (string.IsNullOrWhiteSpace(fen)) return FenParser.StartingPosition;
+
+        var parts = fen.Trim().Split(' ');
+        if (parts.Length == 0) return FenParser.StartingPosition;
+
+        // Ensure we have all 6 parts
+        var normalized = new string[6];
+        normalized[0] = parts.Length > 0 ? parts[0] : "8/8/8/8/8/8/8/8";  // board
+        normalized[1] = parts.Length > 1 ? parts[1] : "w";                // side to move
+        normalized[2] = parts.Length > 2 ? parts[2] : "-";                // castling
+        normalized[3] = parts.Length > 3 ? parts[3] : "-";                // en passant
+        normalized[4] = parts.Length > 4 ? parts[4] : "0";                // halfmove clock
+        normalized[5] = parts.Length > 5 ? parts[5] : "1";                // fullmove number
+
+        return string.Join(" ", normalized);
+    }
+
+    private string GetCurrentTurn()
+    {
+        var position = FenParser.TryParse(_currentFen);
+        return position?.WhiteToMove == true ? "White" : "Black";
+    }
+
+    private string GetMoveNumber()
+    {
+        var position = FenParser.TryParse(_currentFen);
+        return position?.FullmoveNumber.ToString() ?? "1";
+    }
+
+    private string GetMaterialBalance()
+    {
+        var position = FenParser.TryParse(_currentFen);
+        if (position == null) return "=";
+
+        int whiteMaterial = 0;
+        int blackMaterial = 0;
+
+        for (int r = 0; r < 8; r++)
+        {
+            for (int f = 0; f < 8; f++)
+            {
+                var piece = position.Board[r, f];
+                var value = piece switch
+                {
+                    Piece.WhiteQueen => 9,
+                    Piece.WhiteRook => 5,
+                    Piece.WhiteBishop => 3,
+                    Piece.WhiteKnight => 3,
+                    Piece.WhitePawn => 1,
+                    Piece.BlackQueen => -9,
+                    Piece.BlackRook => -5,
+                    Piece.BlackBishop => -3,
+                    Piece.BlackKnight => -3,
+                    Piece.BlackPawn => -1,
+                    _ => 0
+                };
+                if (value > 0) whiteMaterial += value;
+                else blackMaterial += Math.Abs(value);
+            }
+        }
+
+        var diff = whiteMaterial - blackMaterial;
+        if (diff == 0) return "=";
+        return diff > 0 ? $"+{diff}" : diff.ToString();
+    }
+
+    private string GetMaterialClass()
+    {
+        var balance = GetMaterialBalance();
+        if (balance.StartsWith("+")) return "positive";
+        if (balance.StartsWith("-")) return "negative";
         return "neutral";
     }
 }

@@ -53,8 +53,8 @@
                     </div>
                 </div>
             </div>
-            <div class="digital-clock">
-                <div class="clock-display @(IsTopPlayerActive() ? "active" : "")">
+            <div class="digital-clock" @onclick="ToggleClock" title="@(_clockRunning ? "Click to pause" : "Click to start")">
+                <div class="clock-display @(IsTopPlayerActive() ? "active ticking" : "") @(GetTopPlayerTime() < TimeSpan.FromSeconds(30) ? "low-time" : "")">
                     @(_flipBoard ? FormatTime(_whiteTime) : FormatTime(_blackTime))
                 </div>
             </div>
@@ -106,8 +106,8 @@
                     </div>
                 </div>
             </div>
-            <div class="digital-clock">
-                <div class="clock-display @(IsBottomPlayerActive() ? "active" : "")">
+            <div class="digital-clock" @onclick="ToggleClock" title="@(_clockRunning ? "Click to pause" : "Click to start")">
+                <div class="clock-display @(IsBottomPlayerActive() ? "active ticking" : "") @(GetBottomPlayerTime() < TimeSpan.FromSeconds(30) ? "low-time" : "")">
                     @(_flipBoard ? FormatTime(_blackTime) : FormatTime(_whiteTime))
                 </div>
             </div>
@@ -190,15 +190,15 @@
         <!-- Tabs -->
         <div class="sidebar-tabs">
             <button class="tab-button @(_activeTab == "analysis" ? "active" : "")"
-                    @onclick='() => _activeTab = "analysis"'>
+                    @onclick='() => SetActiveTab("analysis")'>
                 Analysis
             </button>
             <button class="tab-button @(_activeTab == "games" ? "active" : "")"
-                    @onclick='() => _activeTab = "games"'>
+                    @onclick='() => SetActiveTab("games")'>
                 Games
             </button>
             <button class="tab-button @(_activeTab == "explore" ? "active" : "")"
-                    @onclick='() => _activeTab = "explore"'>
+                    @onclick='() => SetActiveTab("explore")'>
                 Explore
             </button>
         </div>
@@ -243,6 +243,24 @@
                                 </span>
                             </div>
                         }
+                    </div>
+                }
+
+                <!-- Coach Explanation -->
+                @if (!string.IsNullOrEmpty(_coachExplanation))
+                {
+                    <div class="coach-explanation">
+                        <div class="coach-header">
+                            <span class="coach-icon">🎓</span>
+                            <span class="coach-title">Coach</span>
+                        </div>
+                        @if (_lastMoveEvalClassification != MoveClassification.None)
+                        {
+                            <div class="coach-classification @GetClassificationClass(_lastMoveEvalClassification)">
+                                @GetCoachClassificationText(_lastMoveEvalClassification)
+                            </div>
+                        }
+                        <p class="coach-text">@_coachExplanation</p>
                     </div>
                 }
 
@@ -584,6 +602,17 @@
     private void FlipBoard()
     {
         _flipBoard = !_flipBoard;
+    }
+
+    private async Task SetActiveTab(string tab)
+    {
+        _activeTab = tab;
+
+        // Load explorer data when switching to explore tab
+        if (tab == "explore")
+        {
+            await LoadExplorerData();
+        }
     }
 
     private void ResetBoard()
@@ -1113,6 +1142,17 @@
         _clockTimer?.Dispose();
         _clockTimer = null;
     }
+
+    private void ToggleClock()
+    {
+        if (_clockRunning)
+            PauseClock();
+        else
+            StartClock();
+    }
+
+    private TimeSpan GetTopPlayerTime() => _flipBoard ? _whiteTime : _blackTime;
+    private TimeSpan GetBottomPlayerTime() => _flipBoard ? _blackTime : _whiteTime;
 
     private void ResetClocks()
     {
